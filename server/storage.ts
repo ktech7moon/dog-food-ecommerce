@@ -1,0 +1,430 @@
+import { 
+  User, InsertUser, 
+  Product, InsertProduct,
+  ProductSize, InsertProductSize,
+  Review, InsertReview,
+  Order, InsertOrder,
+  OrderItem, InsertOrderItem,
+  Cart, InsertCart, 
+  CartItem, InsertCartItem,
+  FAQ, InsertFAQ,
+  ContactSubmission, InsertContactSubmission,
+  NewsletterSubscriber, InsertNewsletterSubscriber,
+} from "@shared/schema";
+
+// Storage interface
+export interface IStorage {
+  // Users
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
+  
+  // Products
+  getProducts(): Promise<Product[]>;
+  getProduct(id: number): Promise<Product | undefined>;
+  createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: number, product: Partial<Product>): Promise<Product | undefined>;
+  
+  // Product Sizes
+  getProductSizes(): Promise<ProductSize[]>;
+  getProductSize(id: number): Promise<ProductSize | undefined>;
+  createProductSize(size: InsertProductSize): Promise<ProductSize>;
+  
+  // Reviews
+  getReviews(): Promise<Review[]>;
+  getProductReviews(productId: number): Promise<Review[]>;
+  getUserReviews(userId: number): Promise<Review[]>;
+  createReview(review: InsertReview): Promise<Review>;
+  
+  // Orders
+  getOrders(userId: number): Promise<Order[]>;
+  getOrder(id: number): Promise<Order | undefined>;
+  createOrder(order: InsertOrder): Promise<Order>;
+  updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
+  
+  // Order Items
+  getOrderItems(orderId: number): Promise<OrderItem[]>;
+  createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
+  
+  // Carts
+  getCart(userId: number): Promise<Cart | undefined>;
+  createCart(cart: InsertCart): Promise<Cart>;
+  
+  // Cart Items
+  getCartItems(cartId: number): Promise<CartItem[]>;
+  getCartItem(cartId: number, productId: number): Promise<CartItem | undefined>;
+  createCartItem(item: InsertCartItem): Promise<CartItem>;
+  updateCartItem(id: number, quantity: number): Promise<CartItem | undefined>;
+  deleteCartItem(id: number): Promise<boolean>;
+  clearCart(cartId: number): Promise<boolean>;
+  
+  // FAQs
+  getFAQs(): Promise<FAQ[]>;
+  createFAQ(faq: InsertFAQ): Promise<FAQ>;
+  
+  // Contact Submissions
+  createContactSubmission(submission: InsertContactSubmission): Promise<ContactSubmission>;
+  
+  // Newsletter Subscribers
+  createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
+  isEmailSubscribed(email: string): Promise<boolean>;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private products: Map<number, Product>;
+  private productSizes: Map<number, ProductSize>;
+  private reviews: Map<number, Review>;
+  private orders: Map<number, Order>;
+  private orderItems: Map<number, OrderItem>;
+  private carts: Map<number, Cart>;
+  private cartItems: Map<number, CartItem>;
+  private faqs: Map<number, FAQ>;
+  private contactSubmissions: Map<number, ContactSubmission>;
+  private newsletterSubscribers: Map<number, NewsletterSubscriber>;
+  
+  private userId: number;
+  private productId: number;
+  private sizeId: number;
+  private reviewId: number;
+  private orderId: number;
+  private orderItemId: number;
+  private cartId: number;
+  private cartItemId: number;
+  private faqId: number;
+  private contactId: number;
+  private subscriberId: number;
+
+  constructor() {
+    this.users = new Map();
+    this.products = new Map();
+    this.productSizes = new Map();
+    this.reviews = new Map();
+    this.orders = new Map();
+    this.orderItems = new Map();
+    this.carts = new Map();
+    this.cartItems = new Map();
+    this.faqs = new Map();
+    this.contactSubmissions = new Map();
+    this.newsletterSubscribers = new Map();
+    
+    this.userId = 1;
+    this.productId = 1;
+    this.sizeId = 1;
+    this.reviewId = 1;
+    this.orderId = 1;
+    this.orderItemId = 1;
+    this.cartId = 1;
+    this.cartItemId = 1;
+    this.faqId = 1;
+    this.contactId = 1;
+    this.subscriberId = 1;
+    
+    // Initialize with sample data
+    this.initSampleData();
+  }
+
+  private initSampleData() {
+    // Add sample products
+    const chickenProduct: InsertProduct = {
+      name: "Chicken Delight",
+      description: "A perfect blend of tender chicken, quinoa, eggs, and fresh vegetables. Rich in protein and essential nutrients.",
+      protein: "chicken",
+      price: 24.99,
+      imageUrl: "https://images.unsplash.com/photo-1623610790421-3b1ff2de9974",
+      isBestseller: true,
+      rating: 5.0,
+      reviewCount: 124
+    };
+    
+    const beefProduct: InsertProduct = {
+      name: "Beef Bonanza",
+      description: "Hearty beef mixed with quinoa, eggs, and a colorful medley of vegetables. Perfect for active dogs.",
+      protein: "beef",
+      price: 26.99,
+      imageUrl: "https://images.unsplash.com/photo-1615548086280-b7d26a5a8476",
+      isBestseller: false,
+      rating: 4.5,
+      reviewCount: 98
+    };
+    
+    this.createProduct(chickenProduct);
+    this.createProduct(beefProduct);
+    
+    // Add product sizes
+    const sizes = [
+      { name: "Small Dog", description: "5-15 lbs", priceMultiplier: 0.8 },
+      { name: "Medium Dog", description: "16-40 lbs", priceMultiplier: 1.0 },
+      { name: "Large Dog", description: "41-70 lbs", priceMultiplier: 1.3 },
+      { name: "Extra Large Dog", description: "71+ lbs", priceMultiplier: 1.6 }
+    ];
+    
+    sizes.forEach(size => this.createProductSize(size));
+    
+    // Add FAQs
+    const faqs = [
+      { 
+        question: "How long does the food stay fresh?", 
+        answer: "Our meals stay fresh for up to 5 days in the refrigerator. For longer storage, you can keep them in the freezer for up to 3 months. Each package has a \"best by\" date clearly marked.", 
+        order: 1 
+      },
+      { 
+        question: "Can I customize the ingredients for allergies?", 
+        answer: "Yes! We offer customization options for dogs with special dietary needs or allergies. During the ordering process, you can specify allergies, and we'll adjust the recipe accordingly.", 
+        order: 2 
+      },
+      { 
+        question: "How much food does my dog need?", 
+        answer: "The amount of food depends on your dog's weight, age, and activity level. During the ordering process, we'll recommend the right portion size based on your dog's profile. Each meal pack comes with clear feeding instructions.", 
+        order: 3 
+      },
+      { 
+        question: "What if my dog doesn't like the food?", 
+        answer: "We offer a 100% satisfaction guarantee. If your dog doesn't love our food, contact us within 14 days of delivery, and we'll issue a full refund or work with you to find a recipe your pup will enjoy.", 
+        order: 4 
+      },
+      { 
+        question: "How does shipping work?", 
+        answer: "We ship nationwide using insulated packaging to keep the food cold. Shipping costs are calculated based on your location. Orders over $50 qualify for free shipping. You'll receive tracking information once your order ships.", 
+        order: 5 
+      }
+    ];
+    
+    faqs.forEach(faq => this.createFAQ(faq));
+  }
+
+  // Users
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.username === username);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const id = this.userId++;
+    const createdAt = new Date();
+    const newUser: User = { ...user, id, createdAt };
+    this.users.set(id, newUser);
+    return newUser;
+  }
+
+  async updateUser(id: number, user: Partial<User>): Promise<User | undefined> {
+    const existingUser = this.users.get(id);
+    if (!existingUser) return undefined;
+    
+    const updatedUser = { ...existingUser, ...user };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  // Products
+  async getProducts(): Promise<Product[]> {
+    return Array.from(this.products.values());
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    return this.products.get(id);
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const id = this.productId++;
+    const newProduct: Product = { ...product, id };
+    this.products.set(id, newProduct);
+    return newProduct;
+  }
+
+  async updateProduct(id: number, product: Partial<Product>): Promise<Product | undefined> {
+    const existingProduct = this.products.get(id);
+    if (!existingProduct) return undefined;
+    
+    const updatedProduct = { ...existingProduct, ...product };
+    this.products.set(id, updatedProduct);
+    return updatedProduct;
+  }
+
+  // Product Sizes
+  async getProductSizes(): Promise<ProductSize[]> {
+    return Array.from(this.productSizes.values());
+  }
+
+  async getProductSize(id: number): Promise<ProductSize | undefined> {
+    return this.productSizes.get(id);
+  }
+
+  async createProductSize(size: InsertProductSize): Promise<ProductSize> {
+    const id = this.sizeId++;
+    const newSize: ProductSize = { ...size, id };
+    this.productSizes.set(id, newSize);
+    return newSize;
+  }
+
+  // Reviews
+  async getReviews(): Promise<Review[]> {
+    return Array.from(this.reviews.values());
+  }
+
+  async getProductReviews(productId: number): Promise<Review[]> {
+    return Array.from(this.reviews.values()).filter(review => review.productId === productId);
+  }
+
+  async getUserReviews(userId: number): Promise<Review[]> {
+    return Array.from(this.reviews.values()).filter(review => review.userId === userId);
+  }
+
+  async createReview(review: InsertReview): Promise<Review> {
+    const id = this.reviewId++;
+    const createdAt = new Date();
+    const newReview: Review = { ...review, id, createdAt };
+    this.reviews.set(id, newReview);
+    
+    // Update product rating and review count
+    const product = await this.getProduct(review.productId);
+    if (product) {
+      const reviews = await this.getProductReviews(review.productId);
+      const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0) + review.rating;
+      const averageRating = totalRating / (reviews.length + 1);
+      
+      await this.updateProduct(product.id, {
+        rating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+        reviewCount: product.reviewCount + 1
+      });
+    }
+    
+    return newReview;
+  }
+
+  // Orders
+  async getOrders(userId: number): Promise<Order[]> {
+    return Array.from(this.orders.values()).filter(order => order.userId === userId);
+  }
+
+  async getOrder(id: number): Promise<Order | undefined> {
+    return this.orders.get(id);
+  }
+
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const id = this.orderId++;
+    const createdAt = new Date();
+    const newOrder: Order = { ...order, id, createdAt };
+    this.orders.set(id, newOrder);
+    return newOrder;
+  }
+
+  async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {
+    const existingOrder = this.orders.get(id);
+    if (!existingOrder) return undefined;
+    
+    const updatedOrder = { ...existingOrder, status };
+    this.orders.set(id, updatedOrder);
+    return updatedOrder;
+  }
+
+  // Order Items
+  async getOrderItems(orderId: number): Promise<OrderItem[]> {
+    return Array.from(this.orderItems.values()).filter(item => item.orderId === orderId);
+  }
+
+  async createOrderItem(item: InsertOrderItem): Promise<OrderItem> {
+    const id = this.orderItemId++;
+    const newItem: OrderItem = { ...item, id };
+    this.orderItems.set(id, newItem);
+    return newItem;
+  }
+
+  // Carts
+  async getCart(userId: number): Promise<Cart | undefined> {
+    return Array.from(this.carts.values()).find(cart => cart.userId === userId);
+  }
+
+  async createCart(cart: InsertCart): Promise<Cart> {
+    const id = this.cartId++;
+    const createdAt = new Date();
+    const updatedAt = new Date();
+    const newCart: Cart = { ...cart, id, createdAt, updatedAt };
+    this.carts.set(id, newCart);
+    return newCart;
+  }
+
+  // Cart Items
+  async getCartItems(cartId: number): Promise<CartItem[]> {
+    return Array.from(this.cartItems.values()).filter(item => item.cartId === cartId);
+  }
+
+  async getCartItem(cartId: number, productId: number): Promise<CartItem | undefined> {
+    return Array.from(this.cartItems.values()).find(
+      item => item.cartId === cartId && item.productId === productId
+    );
+  }
+
+  async createCartItem(item: InsertCartItem): Promise<CartItem> {
+    const id = this.cartItemId++;
+    const newItem: CartItem = { ...item, id };
+    this.cartItems.set(id, newItem);
+    return newItem;
+  }
+
+  async updateCartItem(id: number, quantity: number): Promise<CartItem | undefined> {
+    const existingItem = this.cartItems.get(id);
+    if (!existingItem) return undefined;
+    
+    const updatedItem = { ...existingItem, quantity };
+    this.cartItems.set(id, updatedItem);
+    return updatedItem;
+  }
+
+  async deleteCartItem(id: number): Promise<boolean> {
+    return this.cartItems.delete(id);
+  }
+
+  async clearCart(cartId: number): Promise<boolean> {
+    const items = await this.getCartItems(cartId);
+    items.forEach(item => this.cartItems.delete(item.id));
+    return true;
+  }
+
+  // FAQs
+  async getFAQs(): Promise<FAQ[]> {
+    return Array.from(this.faqs.values()).sort((a, b) => a.order - b.order);
+  }
+
+  async createFAQ(faq: InsertFAQ): Promise<FAQ> {
+    const id = this.faqId++;
+    const newFAQ: FAQ = { ...faq, id };
+    this.faqs.set(id, newFAQ);
+    return newFAQ;
+  }
+
+  // Contact Submissions
+  async createContactSubmission(submission: InsertContactSubmission): Promise<ContactSubmission> {
+    const id = this.contactId++;
+    const createdAt = new Date();
+    const newSubmission: ContactSubmission = { ...submission, id, createdAt };
+    this.contactSubmissions.set(id, newSubmission);
+    return newSubmission;
+  }
+
+  // Newsletter Subscribers
+  async createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
+    const id = this.subscriberId++;
+    const createdAt = new Date();
+    const newSubscriber: NewsletterSubscriber = { ...subscriber, id, createdAt };
+    this.newsletterSubscribers.set(id, newSubscriber);
+    return newSubscriber;
+  }
+
+  async isEmailSubscribed(email: string): Promise<boolean> {
+    return Array.from(this.newsletterSubscribers.values()).some(
+      subscriber => subscriber.email === email
+    );
+  }
+}
+
+export const storage = new MemStorage();
