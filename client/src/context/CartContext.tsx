@@ -7,6 +7,7 @@ export type CartCustomization = {
   protein: string;
   size: string;
   frequency: string;
+  purchaseType?: string;
 };
 
 export type CartItem = {

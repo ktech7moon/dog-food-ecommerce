@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ProductCard from "@/components/product/ProductCard";
-import CustomMealPlan from "@/components/product/CustomMealPlan";
+import EnhancedMealPlan from "@/components/product/EnhancedMealPlan";
 import { useProducts } from "@/hooks/useProducts";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -58,9 +58,9 @@ const Products = () => {
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {renderProductCards()}
           
-          {/* Custom Meal Plan */}
+          {/* Enhanced Meal Plan with Custom Weight Slider */}
           <div className="md:col-span-2">
-            <CustomMealPlan />
+            <EnhancedMealPlan />
           </div>
         </div>
       </div>
