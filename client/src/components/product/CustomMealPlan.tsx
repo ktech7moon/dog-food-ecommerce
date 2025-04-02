@@ -22,7 +22,7 @@ const CustomMealPlan = () => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-secondary/20 to-primary/20 rounded-xl shadow-lg overflow-hidden relative mt-8">
+    <div className="bg-gradient-to-r from-gray-100 to-primary/10 rounded-xl shadow-lg overflow-hidden relative mt-8">
       <div className="md:flex">
         <div className="md:w-1/3">
           <img 
@@ -116,7 +116,7 @@ const CustomMealPlan = () => {
             <Button 
               onClick={handleCreateCustomPlan}
               disabled={isLoading}
-              className="bg-accent hover:bg-accent/90 text-white font-semibold rounded-full px-8 py-3"
+              className="bg-primary hover:bg-primary/90 text-white font-semibold rounded-full px-8 py-3"
             >
               Create Custom Plan
             </Button>

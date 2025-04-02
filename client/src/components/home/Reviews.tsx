@@ -41,7 +41,7 @@ const Reviews = () => {
   };
   
   const handleNextReview = () => {
-    if (reviews.length === a0) return;
+    if (reviews.length === 0) return;
     setCurrentReviewIndex((prevIndex) => 
       prevIndex === reviews.length - 1 ? 0 : prevIndex + 1
     );
@@ -122,7 +122,7 @@ const Reviews = () => {
             />
             <div>
               <h4 className="font-bold">{getReviewUsername(review)}</h4>
-              <div className="text-accent flex mb-1">
+              <div className="text-primary flex mb-1">
                 {[...Array(5)].map((_, i) => (
                   <i 
                     key={i} 
@@ -194,7 +194,7 @@ const Reviews = () => {
             <div className="md:w-2/5 bg-primary text-white p-8">
               <div className="text-center">
                 <div className="text-6xl font-bold">4.9</div>
-                <div className="text-accent flex justify-center my-2">
+                <div className="text-white flex justify-center my-2">
                   <i className="fas fa-star"></i>
                   <i className="fas fa-star"></i>
                   <i className="fas fa-star"></i>
@@ -206,35 +206,35 @@ const Reviews = () => {
                   <div className="flex items-center text-sm">
                     <span className="w-20 text-left">5 Stars</span>
                     <div className="h-2 bg-white/20 rounded-full flex-grow mx-2">
-                      <div className="h-2 bg-accent rounded-full" style={{width: '92%'}}></div>
+                      <div className="h-2 bg-white rounded-full" style={{width: '92%'}}></div>
                     </div>
                     <span>92%</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <span className="w-20 text-left">4 Stars</span>
                     <div className="h-2 bg-white/20 rounded-full flex-grow mx-2">
-                      <div className="h-2 bg-accent rounded-full" style={{width: '6%'}}></div>
+                      <div className="h-2 bg-white rounded-full" style={{width: '6%'}}></div>
                     </div>
                     <span>6%</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <span className="w-20 text-left">3 Stars</span>
                     <div className="h-2 bg-white/20 rounded-full flex-grow mx-2">
-                      <div className="h-2 bg-accent rounded-full" style={{width: '2%'}}></div>
+                      <div className="h-2 bg-white rounded-full" style={{width: '2%'}}></div>
                     </div>
                     <span>2%</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <span className="w-20 text-left">2 Stars</span>
                     <div className="h-2 bg-white/20 rounded-full flex-grow mx-2">
-                      <div className="h-2 bg-accent rounded-full" style={{width: '0%'}}></div>
+                      <div className="h-2 bg-white rounded-full" style={{width: '0%'}}></div>
                     </div>
                     <span>0%</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <span className="w-20 text-left">1 Star</span>
                     <div className="h-2 bg-white/20 rounded-full flex-grow mx-2">
-                      <div className="h-2 bg-accent rounded-full" style={{width: '0%'}}></div>
+                      <div className="h-2 bg-white rounded-full" style={{width: '0%'}}></div>
                     </div>
                     <span>0%</span>
                   </div>
@@ -245,7 +245,7 @@ const Reviews = () => {
               <h3 className="text-2xl font-bold mb-4">What Customers Love</h3>
               <div className="space-y-4">
                 <div className="flex items-start">
-                  <span className="bg-accent/10 text-accent p-2 rounded-full mr-3">
+                  <span className="bg-primary/10 text-primary p-2 rounded-full mr-3">
                     <i className="fas fa-utensils"></i>
                   </span>
                   <div>
@@ -254,7 +254,7 @@ const Reviews = () => {
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <span className="bg-accent/10 text-accent p-2 rounded-full mr-3">
+                  <span className="bg-primary/10 text-primary p-2 rounded-full mr-3">
                     <i className="fas fa-heart"></i>
                   </span>
                   <div>
@@ -263,7 +263,7 @@ const Reviews = () => {
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <span className="bg-accent/10 text-accent p-2 rounded-full mr-3">
+                  <span className="bg-primary/10 text-primary p-2 rounded-full mr-3">
                     <i className="fas fa-shipping-fast"></i>
                   </span>
                   <div>
@@ -277,7 +277,7 @@ const Reviews = () => {
                 <DialogTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className="inline-block mt-6 bg-accent/10 hover:bg-accent/20 text-accent font-semibold rounded-full px-6 py-2"
+                    className="inline-block mt-6 bg-primary/10 hover:bg-primary/20 text-primary font-semibold rounded-full px-6 py-2"
                   >
                     Read All Reviews
                   </Button>
@@ -298,7 +298,7 @@ const Reviews = () => {
                               <div className="flex justify-between items-start">
                                 <div>
                                   <h4 className="font-bold">{getReviewUsername(review)}</h4>
-                                  <div className="text-accent flex mb-1">
+                                  <div className="text-primary flex mb-1">
                                     {[...Array(5)].map((_, i) => (
                                       <i 
                                         key={i} 

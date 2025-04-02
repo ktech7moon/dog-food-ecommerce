@@ -55,7 +55,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           className="w-full h-64 object-cover" 
         />
         {product.isBestseller && (
-          <div className="absolute top-4 left-4 bg-accent text-white rounded-full px-4 py-1 text-sm font-semibold">
+          <div className="absolute top-4 left-4 bg-primary text-white rounded-full px-4 py-1 text-sm font-semibold">
             Bestseller
           </div>
         )}
@@ -64,7 +64,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <h3 className="text-2xl font-bold mb-2">{product.name}</h3>
         <p className="mb-4">{product.description}</p>
         <div className="flex items-center mb-4">
-          <div className="text-accent flex">
+          <div className="text-primary flex">
             {renderStars()}
           </div>
           <span className="ml-2 text-sm">({product.reviewCount} reviews)</span>
