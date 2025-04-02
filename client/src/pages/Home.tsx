@@ -2,6 +2,7 @@ import Hero from "@/components/home/Hero";
 import Products from "@/components/home/Products";
 import HowItWorks from "@/components/home/HowItWorks";
 import Ingredients from "@/components/home/Ingredients";
+import FounderStory from "@/components/home/FounderStory";
 import Reviews from "@/components/home/Reviews";
 import FAQ from "@/components/home/FAQ";
 import CallToAction from "@/components/home/CallToAction";
@@ -21,6 +22,7 @@ const Home = () => {
         <Products />
         <HowItWorks />
         <Ingredients />
+        <FounderStory />
         <Reviews />
         <FAQ />
         <CallToAction />
