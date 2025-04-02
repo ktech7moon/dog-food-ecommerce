@@ -1,7 +1,5 @@
-import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { Star } from "lucide-react";
-import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
   product: {
@@ -18,11 +16,11 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-  const { addItem, isLoading } = useCart();
-
-  const handleAddToCart = () => {
-    addItem(product.id);
-  };
+  // Calculate price per pound based on the product name
+  const pricePerPound = product.name.includes("Chicken") ? 7.99 : 8.99;
+  
+  // Calculate the total price for a 10 lb option
+  const totalFor10lbs = pricePerPound * 10;
 
   // Render stars based on rating
   const renderStars = () => {
@@ -69,18 +67,15 @@ const ProductCard = ({ product }: ProductCardProps) => {
           </div>
           <span className="ml-2 text-sm">({product.reviewCount} reviews)</span>
         </div>
-        <div className="flex justify-between items-end">
-          <div>
-            <span className="text-2xl font-bold">{formatCurrency(product.price)}</span>
-            <span className="text-sm ml-1">/ week</span>
+        <div className="space-y-2">
+          <div className="flex items-center">
+            <span className="text-lg font-semibold">{formatCurrency(pricePerPound)}</span>
+            <span className="ml-1 text-sm">per pound</span>
           </div>
-          <Button 
-            onClick={handleAddToCart}
-            disabled={isLoading}
-            className="bg-primary hover:bg-primary/90 text-white font-semibold rounded-full"
-          >
-            Add to Cart
-          </Button>
+          <div className="flex items-center">
+            <span className="text-2xl font-bold">{formatCurrency(totalFor10lbs)}</span>
+            <span className="ml-1 text-sm">for 10 lb option</span>
+          </div>
         </div>
       </div>
     </div>

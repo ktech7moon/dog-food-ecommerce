@@ -20,7 +20,7 @@ export type ProductSize = {
 };
 
 export function useProducts() {
-  return useQuery({
+  return useQuery<Product[]>({
     queryKey: ['/api/products'],
     staleTime: 60 * 1000, // 1 minute
   });

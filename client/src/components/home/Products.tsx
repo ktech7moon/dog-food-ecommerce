@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ProductCard from "@/components/product/ProductCard";
 import EnhancedMealPlan from "@/components/product/EnhancedMealPlan";
-import { useProducts } from "@/hooks/useProducts";
+import { useProducts, Product } from "@/hooks/useProducts";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Products = () => {
