@@ -20,10 +20,14 @@ interface AuthContextType {
   isLoading: boolean;
   isLoginModalOpen: boolean;
   isSignupModalOpen: boolean;
+  isEnhancedAuthModalOpen: boolean;
+  authModalTab: "login" | "signup";
   openLoginModal: () => void;
   closeLoginModal: () => void;
   openSignupModal: () => void;
   closeSignupModal: () => void;
+  openEnhancedAuthModal: (tab?: "login" | "signup") => void;
+  closeEnhancedAuthModal: () => void;
   login: (email: string, password: string) => Promise<void>;
   signup: (userData: {
     email: string;
@@ -43,6 +47,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [isEnhancedAuthModalOpen, setIsEnhancedAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<"login" | "signup">("login");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -83,6 +89,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const closeSignupModal = () => {
     setIsSignupModalOpen(false);
   };
+  
+  const openEnhancedAuthModal = (tab?: "login" | "signup") => {
+    if (tab) {
+      setAuthModalTab(tab);
+    }
+    setIsEnhancedAuthModalOpen(true);
+    // Close the old modals if they're open
+    setIsLoginModalOpen(false);
+    setIsSignupModalOpen(false);
+  };
+  
+  const closeEnhancedAuthModal = () => {
+    setIsEnhancedAuthModalOpen(false);
+  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -93,6 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       setUser(data.user);
       closeLoginModal();
+      closeEnhancedAuthModal();
       
       toast({
         title: "Login successful",
@@ -130,6 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       setUser(data.user);
       closeSignupModal();
+      closeEnhancedAuthModal();
       
       toast({
         title: "Account created",
@@ -222,10 +244,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isLoading,
       isLoginModalOpen,
       isSignupModalOpen,
+      isEnhancedAuthModalOpen,
+      authModalTab,
       openLoginModal,
       closeLoginModal,
       openSignupModal,
       closeSignupModal,
+      openEnhancedAuthModal,
+      closeEnhancedAuthModal,
       login,
       signup,
       logout,

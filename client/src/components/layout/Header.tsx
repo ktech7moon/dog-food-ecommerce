@@ -4,11 +4,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import MobileMenu from "./MobileMenu";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, User, ShoppingCart, Menu } from "lucide-react";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, openLoginModal } = useAuth();
+  const { user, openLoginModal, openEnhancedAuthModal } = useAuth();
   const { cart, openCart } = useCart();
 
   const toggleMobileMenu = () => {
@@ -46,10 +46,10 @@ const Header = () => {
               variant="ghost" 
               size="icon" 
               className="hidden md:flex hover:text-accent transition"
-              onClick={user ? () => {} : openLoginModal}
+              onClick={user ? () => {} : () => openEnhancedAuthModal("login")}
             >
               <Link href={user ? "/account" : "#"}>
-                <i className="fas fa-user"></i>
+                <User size={20} />
               </Link>
             </Button>
             <Button 
@@ -58,7 +58,7 @@ const Header = () => {
               className="relative hover:text-accent transition"
               onClick={openCart}
             >
-              <i className="fas fa-shopping-cart"></i>
+              <ShoppingCart size={20} />
               <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                 {cart?.itemCount || 0}
               </span>
@@ -66,10 +66,10 @@ const Header = () => {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="md:hidden text-xl"
+              className="md:hidden"
               onClick={toggleMobileMenu}
             >
-              <i className="fas fa-bars"></i>
+              <Menu size={20} />
             </Button>
           </div>
         </div>
