@@ -96,7 +96,8 @@ const AuthPage = () => {
         password: signupPassword,
         confirmPassword,
         firstName,
-        lastName
+        lastName,
+        username: signupEmail.split('@')[0] + Math.floor(Math.random() * 1000)
       });
       
       toast({
