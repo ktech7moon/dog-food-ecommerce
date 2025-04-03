@@ -41,13 +41,34 @@ const SignupModal = () => {
   });
 
   const onSubmit = async (values: FormValues) => {
-    await signup({
-      firstName: values.firstName,
-      lastName: values.lastName,
-      email: values.email,
-      password: values.password,
-      confirmPassword: values.confirmPassword,
-    });
+    try {
+      // Direct API call to ensure confirmPassword is sent correctly
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: values.firstName,
+          lastName: values.lastName,
+          email: values.email,
+          password: values.password,
+          confirmPassword: values.confirmPassword,
+        }),
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+      
+      // Handle success
+      window.location.reload(); // Simple reload to update the auth state
+      closeSignupModal();
+    } catch (error) {
+      console.error("Signup error:", error);
+    }
   };
 
   if (!isSignupModalOpen) return null;

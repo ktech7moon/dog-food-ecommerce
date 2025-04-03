@@ -97,23 +97,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       });
       
       if (response.status === 401) {
-        // User is not logged in, show login prompt
+        // User is not logged in, redirect to auth page
         toast({
           title: "Login Required",
           description: "Please log in to add items to your cart",
-          variant: "destructive",
           duration: 5000,
-          action: (
-            <div className="flex gap-2 mt-2">
-              <button 
-                onClick={() => window.location.href = '/auth'} 
-                className="bg-primary text-white px-4 py-1 rounded-md text-sm hover:bg-primary/90"
-              >
-                Log In
-              </button>
-            </div>
-          )
         });
+        
+        // Redirect to auth page
+        window.location.href = '/auth';
         return;
       }
       
@@ -158,23 +150,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       });
       
       if (response.status === 401) {
-        // User is not logged in, show login prompt
+        // User is not logged in, redirect to auth page
         toast({
           title: "Login Required",
           description: "Please log in to update your cart",
-          variant: "destructive",
           duration: 5000,
-          action: (
-            <div className="flex gap-2 mt-2">
-              <button 
-                onClick={() => window.location.href = '/auth'} 
-                className="bg-primary text-white px-4 py-1 rounded-md text-sm hover:bg-primary/90"
-              >
-                Log In
-              </button>
-            </div>
-          )
         });
+        
+        // Redirect to auth page
+        window.location.href = '/auth';
         return;
       }
       

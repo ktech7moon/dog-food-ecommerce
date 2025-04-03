@@ -79,7 +79,25 @@ const EnhancedAuthModal = ({ isOpen, onClose, initialTab = "login" }: EnhancedAu
   const handleSignupSubmit = async (values: SignupFormValues) => {
     setIsSubmitting(true);
     try {
-      await signup(values);
+      // Direct API call to avoid issues with confirmPassword
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+      
+      // Handle success
+      const data = await res.json();
+      // Call the auth context to update the user state
+      window.location.reload(); // Simple reload to update the auth state
       onClose();
     } catch (error) {
       console.error("Signup error:", error);
