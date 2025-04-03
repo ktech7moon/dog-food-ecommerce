@@ -83,11 +83,43 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      await apiRequest("POST", "/api/cart/items", { 
-        productId, 
-        quantity,
-        customizations
+      const response = await fetch('/api/cart/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          productId, 
+          quantity,
+          customizations
+        })
       });
+      
+      if (response.status === 401) {
+        // User is not logged in, show login prompt
+        toast({
+          title: "Login Required",
+          description: "Please log in to add items to your cart",
+          variant: "destructive",
+          duration: 5000,
+          action: (
+            <div className="flex gap-2 mt-2">
+              <button 
+                onClick={() => window.location.href = '/auth'} 
+                className="bg-primary text-white px-4 py-1 rounded-md text-sm hover:bg-primary/90"
+              >
+                Log In
+              </button>
+            </div>
+          )
+        });
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
       
       await queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
       await fetchCart();
@@ -103,7 +135,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error adding item to cart:", error);
       toast({
         title: "Error",
-        description: "Failed to add item to cart",
+        description: "Failed to add item to cart. Please try again.",
         variant: "destructive",
         duration: 3000
       });
@@ -116,7 +148,39 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      await apiRequest("PUT", `/api/cart/items/${itemId}`, { quantity });
+      const response = await fetch(`/api/cart/items/${itemId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ quantity })
+      });
+      
+      if (response.status === 401) {
+        // User is not logged in, show login prompt
+        toast({
+          title: "Login Required",
+          description: "Please log in to update your cart",
+          variant: "destructive",
+          duration: 5000,
+          action: (
+            <div className="flex gap-2 mt-2">
+              <button 
+                onClick={() => window.location.href = '/auth'} 
+                className="bg-primary text-white px-4 py-1 rounded-md text-sm hover:bg-primary/90"
+              >
+                Log In
+              </button>
+            </div>
+          )
+        });
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
       
       await queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
       await fetchCart();
@@ -137,7 +201,35 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      await apiRequest("DELETE", `/api/cart/items/${itemId}`, undefined);
+      const response = await fetch(`/api/cart/items/${itemId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (response.status === 401) {
+        // User is not logged in, show login prompt
+        toast({
+          title: "Login Required",
+          description: "Please log in to manage your cart",
+          variant: "destructive",
+          duration: 5000,
+          action: (
+            <div className="flex gap-2 mt-2">
+              <button 
+                onClick={() => window.location.href = '/auth'} 
+                className="bg-primary text-white px-4 py-1 rounded-md text-sm hover:bg-primary/90"
+              >
+                Log In
+              </button>
+            </div>
+          )
+        });
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
       
       await queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
       await fetchCart();
@@ -164,7 +256,35 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      await apiRequest("DELETE", "/api/cart", undefined);
+      const response = await fetch('/api/cart', {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (response.status === 401) {
+        // User is not logged in, show login prompt
+        toast({
+          title: "Login Required",
+          description: "Please log in to manage your cart",
+          variant: "destructive",
+          duration: 5000,
+          action: (
+            <div className="flex gap-2 mt-2">
+              <button 
+                onClick={() => window.location.href = '/auth'} 
+                className="bg-primary text-white px-4 py-1 rounded-md text-sm hover:bg-primary/90"
+              >
+                Log In
+              </button>
+            </div>
+          )
+        });
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${await response.text()}`);
+      }
       
       await queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
       await fetchCart();
