@@ -10,7 +10,14 @@ import {
   FAQ, InsertFAQ,
   ContactSubmission, InsertContactSubmission,
   NewsletterSubscriber, InsertNewsletterSubscriber,
+  users, products, productSizes, reviews, orders, orderItems, carts, cartItems, faqs, contactSubmissions, newsletterSubscribers
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
+import createMemoryStore from "memorystore";
 
 // Storage interface
 export interface IStorage {
@@ -70,6 +77,276 @@ export interface IStorage {
   // Newsletter Subscribers
   createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
   isEmailSubscribed(email: string): Promise<boolean>;
+  
+  // Session store
+  sessionStore: session.Store;
+}
+
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+  
+  constructor() {
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true,
+      tableName: 'session'
+    });
+  }
+
+  // Users
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    // Ensure all fields have appropriate default values to satisfy the type system
+    const userToInsert = {
+      ...user,
+      address: user.address || null,
+      city: user.city || null,
+      state: user.state || null,
+      zipCode: user.zipCode || null,
+      country: user.country || null
+    };
+    
+    const [newUser] = await db.insert(users).values(userToInsert).returning();
+    return newUser;
+  }
+
+  async updateUser(id: number, user: Partial<User>): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set(user)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  // Products
+  async getProducts(): Promise<Product[]> {
+    return await db.select().from(products);
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    // Ensure all fields have appropriate default values
+    const productToInsert = {
+      ...product,
+      isBestseller: product.isBestseller ?? false,
+      rating: product.rating ?? 0,
+      reviewCount: product.reviewCount ?? 0
+    };
+    
+    const [newProduct] = await db.insert(products).values(productToInsert).returning();
+    return newProduct;
+  }
+
+  async updateProduct(id: number, product: Partial<Product>): Promise<Product | undefined> {
+    const [updatedProduct] = await db.update(products)
+      .set(product)
+      .where(eq(products.id, id))
+      .returning();
+    return updatedProduct;
+  }
+
+  // Product Sizes
+  async getProductSizes(): Promise<ProductSize[]> {
+    return await db.select().from(productSizes);
+  }
+
+  async getProductSize(id: number): Promise<ProductSize | undefined> {
+    const [size] = await db.select().from(productSizes).where(eq(productSizes.id, id));
+    return size;
+  }
+
+  async createProductSize(size: InsertProductSize): Promise<ProductSize> {
+    const [newSize] = await db.insert(productSizes).values(size).returning();
+    return newSize;
+  }
+
+  // Reviews
+  async getReviews(): Promise<Review[]> {
+    return await db.select().from(reviews);
+  }
+
+  async getProductReviews(productId: number): Promise<Review[]> {
+    return await db.select().from(reviews).where(eq(reviews.productId, productId));
+  }
+
+  async getUserReviews(userId: number): Promise<Review[]> {
+    return await db.select().from(reviews).where(eq(reviews.userId, userId));
+  }
+
+  async createReview(review: InsertReview): Promise<Review> {
+    // Ensure all fields have appropriate default values
+    const reviewToInsert = {
+      ...review,
+      images: review.images || null
+    };
+    
+    const [newReview] = await db.insert(reviews).values(reviewToInsert).returning();
+    
+    // Update product rating and review count
+    const product = await this.getProduct(review.productId);
+    if (product) {
+      const productReviews = await this.getProductReviews(review.productId);
+      const totalRating = productReviews.reduce((sum, r) => sum + r.rating, 0);
+      const averageRating = totalRating / productReviews.length;
+      
+      // Use null coalescing to handle potential null values
+      const currentReviewCount = product.reviewCount ?? 0;
+      
+      await this.updateProduct(product.id, {
+        rating: Math.round(averageRating * 10) / 10,
+        reviewCount: productReviews.length
+      });
+    }
+    
+    return newReview;
+  }
+
+  // Orders
+  async getOrders(userId: number): Promise<Order[]> {
+    return await db.select().from(orders).where(eq(orders.userId, userId));
+  }
+
+  async getOrder(id: number): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order;
+  }
+
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const [newOrder] = await db.insert(orders).values(order).returning();
+    return newOrder;
+  }
+
+  async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {
+    const [updatedOrder] = await db.update(orders)
+      .set({ status })
+      .where(eq(orders.id, id))
+      .returning();
+    return updatedOrder;
+  }
+
+  // Order Items
+  async getOrderItems(orderId: number): Promise<OrderItem[]> {
+    return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+  }
+
+  async createOrderItem(item: InsertOrderItem): Promise<OrderItem> {
+    const itemToInsert = {
+      ...item,
+      customizations: item.customizations || null  // Ensure customizations is not undefined
+    };
+    
+    const [newItem] = await db.insert(orderItems).values(itemToInsert).returning();
+    return newItem;
+  }
+
+  // Carts
+  async getCart(userId: number): Promise<Cart | undefined> {
+    const [cart] = await db.select().from(carts).where(eq(carts.userId, userId));
+    return cart;
+  }
+
+  async createCart(cart: InsertCart): Promise<Cart> {
+    const [newCart] = await db.insert(carts).values(cart).returning();
+    return newCart;
+  }
+
+  // Cart Items
+  async getCartItems(cartId: number): Promise<CartItem[]> {
+    return await db.select().from(cartItems).where(eq(cartItems.cartId, cartId));
+  }
+
+  async getCartItem(cartId: number, productId: number): Promise<CartItem | undefined> {
+    const [item] = await db.select()
+      .from(cartItems)
+      .where(
+        and(
+          eq(cartItems.cartId, cartId),
+          eq(cartItems.productId, productId)
+        )
+      );
+    return item;
+  }
+
+  async createCartItem(item: InsertCartItem): Promise<CartItem> {
+    const itemToInsert = {
+      ...item,
+      customizations: item.customizations || null  // Ensure customizations is not undefined
+    };
+    
+    const [newItem] = await db.insert(cartItems).values(itemToInsert).returning();
+    return newItem;
+  }
+
+  async updateCartItem(id: number, quantity: number): Promise<CartItem | undefined> {
+    const [updatedItem] = await db.update(cartItems)
+      .set({ quantity })
+      .where(eq(cartItems.id, id))
+      .returning();
+    return updatedItem;
+  }
+
+  async deleteCartItem(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(cartItems).where(eq(cartItems.id, id));
+      return !!result.rowCount && result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting cart item:", error);
+      return false;
+    }
+  }
+
+  async clearCart(cartId: number): Promise<boolean> {
+    await db.delete(cartItems).where(eq(cartItems.cartId, cartId));
+    return true;
+  }
+
+  // FAQs
+  async getFAQs(): Promise<FAQ[]> {
+    return await db.select().from(faqs).orderBy(faqs.order);
+  }
+
+  async createFAQ(faq: InsertFAQ): Promise<FAQ> {
+    const [newFAQ] = await db.insert(faqs).values(faq).returning();
+    return newFAQ;
+  }
+
+  // Contact Submissions
+  async createContactSubmission(submission: InsertContactSubmission): Promise<ContactSubmission> {
+    const [newSubmission] = await db.insert(contactSubmissions).values(submission).returning();
+    return newSubmission;
+  }
+
+  // Newsletter Subscribers
+  async createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
+    const [newSubscriber] = await db.insert(newsletterSubscribers).values(subscriber).returning();
+    return newSubscriber;
+  }
+
+  async isEmailSubscribed(email: string): Promise<boolean> {
+    const [subscriber] = await db.select()
+      .from(newsletterSubscribers)
+      .where(eq(newsletterSubscribers.email, email));
+    return !!subscriber;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -96,6 +373,8 @@ export class MemStorage implements IStorage {
   private faqId: number;
   private contactId: number;
   private subscriberId: number;
+  
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -121,6 +400,12 @@ export class MemStorage implements IStorage {
     this.faqId = 1;
     this.contactId = 1;
     this.subscriberId = 1;
+    
+    // Create an in-memory session store
+    const MemoryStore = createMemoryStore(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
     
     // Initialize with sample data
     this.initSampleData();
@@ -223,7 +508,19 @@ export class MemStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const id = this.userId++;
     const createdAt = new Date();
-    const newUser: User = { ...user, id, createdAt };
+    
+    // Ensure all fields have appropriate default values to satisfy the type system
+    const newUser: User = { 
+      ...user, 
+      id, 
+      createdAt,
+      address: user.address || null,
+      city: user.city || null,
+      state: user.state || null,
+      zipCode: user.zipCode || null,
+      country: user.country || null
+    };
+    
     this.users.set(id, newUser);
     return newUser;
   }
@@ -248,7 +545,14 @@ export class MemStorage implements IStorage {
 
   async createProduct(product: InsertProduct): Promise<Product> {
     const id = this.productId++;
-    const newProduct: Product = { ...product, id };
+    // Ensure all fields have appropriate default values
+    const newProduct: Product = { 
+      ...product, 
+      id,
+      isBestseller: product.isBestseller ?? false,
+      rating: product.rating ?? 0,
+      reviewCount: product.reviewCount ?? 0
+    };
     this.products.set(id, newProduct);
     return newProduct;
   }
@@ -294,7 +598,15 @@ export class MemStorage implements IStorage {
   async createReview(review: InsertReview): Promise<Review> {
     const id = this.reviewId++;
     const createdAt = new Date();
-    const newReview: Review = { ...review, id, createdAt };
+    
+    // Ensure all fields have appropriate default values
+    const newReview: Review = { 
+      ...review, 
+      id, 
+      createdAt,
+      images: review.images || null
+    };
+    
     this.reviews.set(id, newReview);
     
     // Update product rating and review count
@@ -306,7 +618,7 @@ export class MemStorage implements IStorage {
       
       await this.updateProduct(product.id, {
         rating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
-        reviewCount: product.reviewCount + 1
+        reviewCount: (product.reviewCount || 0) + 1 // Handle possibly null value
       });
     }
     
@@ -346,7 +658,12 @@ export class MemStorage implements IStorage {
 
   async createOrderItem(item: InsertOrderItem): Promise<OrderItem> {
     const id = this.orderItemId++;
-    const newItem: OrderItem = { ...item, id };
+    // Ensure all fields have appropriate default values
+    const newItem: OrderItem = { 
+      ...item, 
+      id,
+      customizations: item.customizations || null
+    };
     this.orderItems.set(id, newItem);
     return newItem;
   }
@@ -378,7 +695,12 @@ export class MemStorage implements IStorage {
 
   async createCartItem(item: InsertCartItem): Promise<CartItem> {
     const id = this.cartItemId++;
-    const newItem: CartItem = { ...item, id };
+    // Ensure all fields have appropriate default values
+    const newItem: CartItem = { 
+      ...item, 
+      id,
+      customizations: item.customizations || null
+    };
     this.cartItems.set(id, newItem);
     return newItem;
   }
