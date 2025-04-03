@@ -7,6 +7,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import Stripe from "stripe";
 import { insertUserSchema, insertContactSubmissionSchema, insertReviewSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -615,6 +616,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ shipping });
     } catch (error) {
       res.status(500).json({ message: 'Error calculating shipping' });
+    }
+  });
+
+  // STRIPE PAYMENT ROUTES
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.warn('Missing STRIPE_SECRET_KEY. Payment processing will not work.');
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+    apiVersion: '2023-10-16',
+  });
+
+  // Create a payment intent for one-time purchases
+  app.post('/api/create-payment-intent', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const { amount } = req.body;
+      
+      if (!amount || typeof amount !== 'number') {
+        return res.status(400).json({ message: 'Invalid amount' });
+      }
+      
+      // Create a payment intent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert dollars to cents
+        currency: 'usd',
+        metadata: {
+          userId: user.id.toString()
+        },
+        // For order tracking and webhook handling
+        description: `Order for user ${user.email}`,
+      });
+      
+      // Send the client secret to the client
+      res.json({
+        clientSecret: paymentIntent.client_secret
+      });
+    } catch (error: any) {
+      console.error('Error creating payment intent:', error);
+      res.status(500).json({
+        message: 'Error processing payment',
+        error: error.message
+      });
+    }
+  });
+
+  // Create a payment intent from the current cart
+  app.post('/api/create-payment-intent-from-cart', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      
+      // Get user's cart
+      const cart = await storage.getCart(user.id);
+      if (!cart) {
+        return res.status(404).json({ message: 'Cart not found' });
+      }
+      
+      // Get cart items
+      const cartItems = await storage.getCartItems(cart.id);
+      if (!cartItems.length) {
+        return res.status(400).json({ message: 'Cart is empty' });
+      }
+      
+      // Calculate total amount
+      let amount = 0;
+      
+      for (const item of cartItems) {
+        const product = await storage.getProduct(item.productId);
+        if (!product) {
+          return res.status(404).json({ message: `Product with id ${item.productId} not found` });
+        }
+        
+        amount += product.price * item.quantity;
+      }
+      
+      // Apply shipping
+      let shipping = 10;
+      
+      // Free shipping for orders over $50
+      if (amount >= 50) {
+        shipping = 0;
+      }
+      
+      // Add shipping to amount
+      amount += shipping;
+      
+      // Create a payment intent with the cart total
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert dollars to cents
+        currency: 'usd',
+        metadata: {
+          userId: user.id.toString(),
+          cartId: cart.id.toString()
+        },
+        description: `Order for user ${user.email}`,
+      });
+      
+      // Send the client secret to the client
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+        amount: amount
+      });
+    } catch (error: any) {
+      console.error('Error creating payment intent from cart:', error);
+      res.status(500).json({
+        message: 'Error processing payment',
+        error: error.message
+      });
     }
   });
 
