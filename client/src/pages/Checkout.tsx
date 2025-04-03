@@ -108,7 +108,7 @@ const CheckoutForm = ({
         items: cart.items.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
-          price: item.product?.price || 0,
+          price: item.customizations?.customPrice || item.product?.price || 0,
           customizations: item.customizations
         }))
       };
@@ -541,7 +541,9 @@ const Checkout = () => {
                     </p>
                   </div>
                   <p className="font-medium">
-                    {formatCurrency((item.product?.price || 0) * item.quantity)}
+                    {item.customizations?.customPrice 
+                      ? formatCurrency(item.customizations.customPrice * item.quantity) 
+                      : formatCurrency((item.product?.price || 0) * item.quantity)}
                   </p>
                 </div>
               ))}

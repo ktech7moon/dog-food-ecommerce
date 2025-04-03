@@ -121,7 +121,12 @@ const CartSidebar = () => {
                         </Button>
                       </div>
                       <span className="font-semibold">
-                        {item.product ? formatCurrency(item.product.price * item.quantity) : '$0.00'}
+                        {item.customizations?.customPrice 
+                          ? formatCurrency(item.customizations.customPrice * item.quantity) 
+                          : item.product 
+                            ? formatCurrency(item.product.price * item.quantity) 
+                            : '$0.00'
+                        }
                       </span>
                     </div>
                   </div>
