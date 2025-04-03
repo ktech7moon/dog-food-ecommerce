@@ -13,7 +13,7 @@ import {
   deliveryFrequencyOptions,
   purchaseTypes
 } from "@/lib/utils";
-import { useCart } from "@/context/CartContext";
+import { useCart, CartCustomization } from "@/context/CartContext";
 
 const EnhancedMealPlan = () => {
   // State for configuration options
@@ -59,12 +59,19 @@ const EnhancedMealPlan = () => {
       productId = 3; // Mixed Protein Blend (ID 3)
     }
     
-    addItem(productId, 1, { 
-      protein, 
-      size: size === "custom" ? `custom-${customWeight}lbs` : size, 
-      frequency,
+    // Create customization object based on purchase type
+    const customizations: CartCustomization = {
+      protein,
+      size: size === "custom" ? `custom-${customWeight}lbs` : size,
       purchaseType
-    });
+    };
+    
+    // Only include frequency for subscription purchases
+    if (purchaseType === "subscription") {
+      customizations.frequency = frequency;
+    }
+    
+    addItem(productId, 1, customizations);
   };
 
   // Format custom weight display with "lbs"

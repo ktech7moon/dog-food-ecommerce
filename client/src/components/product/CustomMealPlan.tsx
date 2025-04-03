@@ -26,7 +26,13 @@ const CustomMealPlan = () => {
       productId = 3; // Mixed Protein Blend (ID 3)
     }
     
-    addItem(productId, 1, { protein, size, frequency });
+    // Add purchaseType: "subscription" to clarify this is a subscription product
+    addItem(productId, 1, { 
+      protein, 
+      size, 
+      frequency,
+      purchaseType: "subscription"
+    });
   };
 
   return (

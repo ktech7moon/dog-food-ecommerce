@@ -41,7 +41,14 @@ const CartSidebar = () => {
       <div className="text-xs text-gray-500 mt-1">
         {customizations.protein && <div>Protein: {customizations.protein}</div>}
         {customizations.size && <div>Size: {customizations.size}</div>}
-        {customizations.frequency && <div>Delivery: {customizations.frequency}</div>}
+        {customizations.purchaseType === "subscription" ? (
+          <div>
+            <div>Plan: Subscription</div>
+            {customizations.frequency && <div>Delivery: {customizations.frequency}</div>}
+          </div>
+        ) : (
+          <div>Plan: One-time purchase</div>
+        )}
       </div>
     );
   };
