@@ -50,8 +50,16 @@ const EnhancedMealPlan = () => {
   }, [size]);
   
   const handleAddToCart = () => {
-    // Add customizations to the cart item
-    addItem(3, 1, { 
+    // Use the appropriate product ID based on the selected protein
+    let productId = 1; // Default to Chicken Delight (ID 1)
+    
+    if (protein === "beef") {
+      productId = 2; // Beef Bonanza (ID 2)
+    } else if (protein === "mix") {
+      productId = 3; // Mixed Protein Blend (ID 3)
+    }
+    
+    addItem(productId, 1, { 
       protein, 
       size: size === "custom" ? `custom-${customWeight}lbs` : size, 
       frequency,

@@ -150,8 +150,20 @@ export class MemStorage implements IStorage {
       reviewCount: 98
     };
     
+    const mixProduct: InsertProduct = {
+      name: "Mixed Protein Blend",
+      description: "The best of both worlds! A perfect combination of our chicken and beef recipes, providing varied protein sources and flavors.",
+      protein: "mix",
+      price: 28.99,
+      imageUrl: "https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf",
+      isBestseller: true,
+      rating: 4.8,
+      reviewCount: 73
+    };
+    
     this.createProduct(chickenProduct);
     this.createProduct(beefProduct);
+    this.createProduct(mixProduct);
     
     // Add product sizes
     const sizes = [
