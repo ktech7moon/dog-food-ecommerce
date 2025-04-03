@@ -31,7 +31,8 @@ const CustomMealPlan = () => {
       protein, 
       size, 
       frequency,
-      purchaseType: "subscription"
+      purchaseType: "subscription",
+      customPrice: customPrice // Include the calculated custom price
     });
   };
 

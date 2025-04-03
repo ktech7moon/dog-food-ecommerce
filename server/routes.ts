@@ -8,7 +8,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import Stripe from "stripe";
-import { insertUserSchema, insertContactSubmissionSchema, insertReviewSchema } from "@shared/schema";
+import { insertUserSchema, insertContactSubmissionSchema, insertReviewSchema, CartCustomization } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
@@ -79,7 +79,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         path: ["confirmPassword"]
       });
 
-      const validatedData = userSchema.parse(req.body);
+      // Create a copy of the request body to modify if needed
+      const userData = { ...req.body };
+      
+      // If username is not provided, generate it from email
+      if (!userData.username) {
+        userData.username = userData.email.split('@')[0];
+      }
+
+      const validatedData = userSchema.parse(userData);
       
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(validatedData.email);
@@ -90,13 +98,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash password
       const hashedPassword = await bcrypt.hash(validatedData.password, 10);
       
-      // Create username from email
-      const username = validatedData.email.split('@')[0] + Math.floor(Math.random() * 1000);
-
       // Create user
       const user = await storage.createUser({
         ...validatedData,
-        username,
         password: hashedPassword
       });
 
@@ -314,7 +318,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         items: cartItemsWithProducts,
         itemCount: cartItems.length,
         subtotal: cartItemsWithProducts.reduce((sum, item) => {
-          return sum + (item.product?.price || 0) * item.quantity;
+          // Use the custom price if available, otherwise use the product price
+          const customizations = (item.customizations as any) || {};
+          const itemPrice = customizations.customPrice ?? (item.product?.price || 0);
+          return sum + itemPrice * item.quantity;
         }, 0)
       });
     } catch (error) {
@@ -515,7 +522,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ message: `Product with id ${item.productId} not found` });
         }
         
-        subtotal += product.price * item.quantity;
+        // Use the custom price if available, otherwise use the product price
+        const customizations = (item.customizations as any) || {};
+        const itemPrice = customizations.customPrice ?? product.price;
+        subtotal += itemPrice * item.quantity;
       }
       
       // Calculate shipping based on location and subtotal
@@ -661,9 +671,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn('Missing STRIPE_SECRET_KEY. Payment processing will not work.');
   }
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2025-03-31.basil',
-  });
+  // Initialize Stripe with proper typing
+  // The stripe-js package expects a specific version format that's compatible with their API
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
+  const stripe = new Stripe(stripeSecretKey);
 
   // Create a payment intent for one-time purchases
   app.post('/api/create-payment-intent', isAuthenticated, async (req: Request, res: Response) => {
@@ -725,7 +736,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ message: `Product with id ${item.productId} not found` });
         }
         
-        amount += product.price * item.quantity;
+        // Use the custom price if available, otherwise use the product price
+        const customizations = (item.customizations as any) || {};
+        const itemPrice = customizations.customPrice ?? product.price;
+        amount += itemPrice * item.quantity;
       }
       
       // Apply shipping

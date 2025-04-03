@@ -6,8 +6,9 @@ import { queryClient } from "@/lib/queryClient";
 export type CartCustomization = {
   protein: string;
   size: string;
-  frequency: string;
+  frequency?: string;
   purchaseType?: string;
+  customPrice?: number; // Store the calculated price
 };
 
 export type CartItem = {

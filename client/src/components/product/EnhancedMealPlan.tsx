@@ -63,7 +63,8 @@ const EnhancedMealPlan = () => {
     const customizations: CartCustomization = {
       protein,
       size: size === "custom" ? `custom-${customWeight}lbs` : size,
-      purchaseType
+      purchaseType,
+      customPrice: customPrice // Include the calculated custom price
     };
     
     // Only include frequency for subscription purchases

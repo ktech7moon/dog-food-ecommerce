@@ -80,10 +80,8 @@ const EnhancedAuthModal = ({ isOpen, onClose, initialTab = "login" }: EnhancedAu
     setIsSubmitting(true);
     try {
       // Direct API call to avoid issues with confirmPassword
-      // Add the username field based on email
       const userData = {
-        ...values,
-        username: values.email.split('@')[0] + Math.floor(Math.random() * 1000)
+        ...values
       };
       
       const res = await fetch('/api/auth/register', {

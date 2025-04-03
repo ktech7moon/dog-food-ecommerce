@@ -105,17 +105,29 @@ export const carts = pgTable("carts", {
 export const insertCartSchema = createInsertSchema(carts)
   .omit({ id: true, createdAt: true, updatedAt: true });
 
+// Define the cart customization schema
+export const cartCustomizationSchema = z.object({
+  protein: z.string(),
+  size: z.string(),
+  frequency: z.string().optional(),
+  purchaseType: z.string().optional(),
+  customPrice: z.number().optional(),
+});
+
 // Cart item model
 export const cartItems = pgTable("cart_items", {
   id: serial("id").primaryKey(),
   cartId: integer("cart_id").notNull().references(() => carts.id),
   productId: integer("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").notNull(),
-  customizations: jsonb("customizations"),
+  customizations: jsonb("customizations").$type<z.infer<typeof cartCustomizationSchema>>(),
 });
 
 export const insertCartItemSchema = createInsertSchema(cartItems)
-  .omit({ id: true });
+  .omit({ id: true })
+  .extend({
+    customizations: cartCustomizationSchema.optional(),
+  });
 
 // FAQ model
 export const faqs = pgTable("faqs", {
@@ -175,6 +187,7 @@ export type InsertCart = z.infer<typeof insertCartSchema>;
 
 export type CartItem = typeof cartItems.$inferSelect;
 export type InsertCartItem = z.infer<typeof insertCartItemSchema>;
+export type CartCustomization = z.infer<typeof cartCustomizationSchema>;
 
 export type FAQ = typeof faqs.$inferSelect;
 export type InsertFAQ = z.infer<typeof insertFaqSchema>;

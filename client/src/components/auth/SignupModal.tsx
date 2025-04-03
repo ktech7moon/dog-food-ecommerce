@@ -53,8 +53,7 @@ const SignupModal = () => {
           lastName: values.lastName,
           email: values.email,
           password: values.password,
-          confirmPassword: values.confirmPassword,
-          username: values.email.split('@')[0] + Math.floor(Math.random() * 1000)
+          confirmPassword: values.confirmPassword
         }),
         credentials: 'include'
       });
