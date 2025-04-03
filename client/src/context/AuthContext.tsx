@@ -216,15 +216,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       
       const res = await apiRequest("PUT", "/api/auth/user", userData);
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update profile");
+      }
+      
       const updatedUser = await res.json();
       
-      setUser(updatedUser);
+      // Update local state with new user data
+      setUser(prevUser => {
+        if (!prevUser) return updatedUser;
+        return { ...prevUser, ...updatedUser };
+      });
       
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully",
         duration: 3000,
       });
+      
+      // Invalidate the user query to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      
+      return updatedUser;
     } catch (error) {
       console.error("Update profile error:", error);
       toast({
@@ -233,6 +248,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         variant: "destructive",
         duration: 3000,
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }

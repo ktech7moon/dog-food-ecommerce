@@ -178,6 +178,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  app.put('/api/auth/user', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const userId = user.id;
+      
+      // Update user in the database
+      const updatedUser = await storage.updateUser(userId, req.body);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Update the session with the new user data
+      req.login(updatedUser, (err) => {
+        if (err) {
+          return res.status(500).json({ message: 'Error updating session' });
+        }
+        
+        // Return the updated user
+        return res.json({
+          id: updatedUser.id,
+          email: updatedUser.email,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          address: updatedUser.address,
+          city: updatedUser.city,
+          state: updatedUser.state,
+          zipCode: updatedUser.zipCode,
+          country: updatedUser.country
+        });
+      });
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return res.status(500).json({ message: 'Error updating user' });
+    }
+  });
+
   // PRODUCT ROUTES
   app.get('/api/products', async (req: Request, res: Response) => {
     try {
