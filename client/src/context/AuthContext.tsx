@@ -154,9 +154,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       console.log("Signup response:", data);
       
+      // Set the user in context
       setUser(data.user);
       closeSignupModal();
       closeEnhancedAuthModal();
+      
+      // Immediately fetch the full user data to update the context
+      try {
+        const userRes = await fetch('/api/auth/user', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          console.log("Updated user data from API:", userData);
+          setUser(userData); // Update user in context with full details
+        }
+      } catch (error) {
+        console.error("Error fetching user data after signup:", error);
+      }
       
       toast({
         title: "Account created",
@@ -166,11 +183,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Refresh cart data after signup
       queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       
-      // Redirect to welcome page if onboarding is needed
+      // The actual navigation is handled in EnhancedAuthModal.tsx to ensure auth state is properly set
       if (data.needsOnboarding) {
-        console.log("Redirecting to welcome page from AuthContext");
-        window.location.href = "/welcome";
+        console.log("Onboarding flag detected in AuthContext");
       } else {
         console.log("No onboarding flag found in AuthContext");
       }

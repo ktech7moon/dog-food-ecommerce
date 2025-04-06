@@ -16,11 +16,48 @@ const Welcome = () => {
   const [progress, setProgress] = useState(25);
   const [emailVerified, setEmailVerified] = useState(false);
   
-  // Debug logging on component mount
+  // Add a retry mechanism for fetching user data
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
+
+  // Debug logging on component mount and retry mechanism
   useEffect(() => {
     console.log("Welcome component mounted");
     console.log("User state:", user);
-  }, []);
+    
+    // If no user is found, but we're at /welcome, try to refetch a few times
+    // This handles race conditions with authentication state
+    if (!user && retryCount < MAX_RETRIES) {
+      console.log(`No user found, retry attempt ${retryCount + 1}/${MAX_RETRIES}`);
+      
+      // Try to fetch user data directly from the API
+      const checkUserSession = async () => {
+        try {
+          const res = await fetch('/api/auth/user', {
+            method: 'GET',
+            credentials: 'include'
+          });
+          
+          if (res.ok) {
+            console.log("User session found after retry");
+            // If we found a user session but the user state isn't updated yet,
+            // we'll increase the retry count and wait for the AuthContext to update
+          } else {
+            console.log("No user session found after retry");
+          }
+        } catch (error) {
+          console.error("Error checking user session:", error);
+        }
+        
+        // Increment retry count for the next attempt
+        setRetryCount(prev => prev + 1);
+      };
+
+      // Wait a bit before retrying
+      const timeoutId = setTimeout(checkUserSession, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [user, retryCount]);
   
   // Calculate profile completion percentage
   useEffect(() => {
@@ -50,10 +87,21 @@ const Welcome = () => {
     });
   };
   
-  if (!user) {
-    console.log("No user found, redirecting to home");
+  // Only redirect to home after we've exhausted our retries
+  if (!user && retryCount >= MAX_RETRIES) {
+    console.log(`No user found after ${MAX_RETRIES} retries, redirecting to home`);
     navigate("/");
     return null;
+  }
+  
+  // Show a loading state while trying to find the user
+  if (!user) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-4" />
+        <p className="text-center text-muted-foreground">Loading your profile...</p>
+      </div>
+    );
   }
   
   return (

@@ -103,16 +103,47 @@ const EnhancedAuthModal = ({ isOpen, onClose, initialTab = "login" }: EnhancedAu
         throw new Error(data.message || 'Registration failed');
       }
       
-      // Close the modal
-      onClose();
-      
-      // If onboarding is needed, redirect to welcome page
-      if (data.needsOnboarding) {
-        console.log("Redirecting to welcome page");
-        window.location.href = "/welcome";
+      // Instead of directly navigating, let's update the auth context
+      // This ensures the user state is updated before any redirection
+      if (data.user) {
+        // Manually fetch user data using AuthContext
+        try {
+          // We need to get the fully hydrated user from the server
+          const userResponse = await fetch('/api/auth/user', {
+            method: 'GET',
+            credentials: 'include'
+          });
+          
+          if (userResponse.ok) {
+            console.log("Successfully fetched user data after registration");
+            
+            // Close the modal
+            onClose();
+            
+            // If onboarding is needed, redirect to welcome page
+            if (data.needsOnboarding) {
+              console.log("Redirecting to welcome page with updated user state");
+              setTimeout(() => {
+                window.location.href = "/welcome";
+              }, 500); // Small delay to ensure state is updated
+            } else {
+              // Otherwise, just reload to update the auth state
+              console.log("No onboarding flag found, reloading page");
+              window.location.reload();
+            }
+          } else {
+            console.error("Failed to fetch user data after registration");
+            throw new Error("Failed to fetch user data");
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          // Fall back to a reload
+          window.location.reload();
+        }
       } else {
-        // Otherwise, just reload to update the auth state
-        console.log("No onboarding flag found, reloading");
+        // Close the modal
+        onClose();
+        console.log("No user data in response, reloading");
         window.location.reload();
       }
     } catch (error) {
