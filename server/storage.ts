@@ -28,6 +28,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
   updateUserAvatar(id: number, avatarUrl: string, usesDogAvatar: boolean): Promise<User | undefined>;
+  updateUserTheme(id: number, theme: string): Promise<User | undefined>;
   
   // Products
   getProducts(): Promise<Product[]>;
@@ -121,7 +122,8 @@ export class DatabaseStorage implements IStorage {
       zipCode: user.zipCode || null,
       country: user.country || null,
       avatarUrl: user.avatarUrl || null,
-      usesDogAvatar: user.usesDogAvatar || false
+      usesDogAvatar: user.usesDogAvatar || false,
+      theme: user.theme || "light"
     };
     
     const [newUser] = await db.insert(users).values(userToInsert).returning();
@@ -139,6 +141,14 @@ export class DatabaseStorage implements IStorage {
   async updateUserAvatar(id: number, avatarUrl: string, usesDogAvatar: boolean): Promise<User | undefined> {
     const [updatedUser] = await db.update(users)
       .set({ avatarUrl, usesDogAvatar })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+  
+  async updateUserTheme(id: number, theme: string): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set({ theme })
       .where(eq(users.id, id))
       .returning();
     return updatedUser;
@@ -531,7 +541,8 @@ export class MemStorage implements IStorage {
       zipCode: user.zipCode || null,
       country: user.country || null,
       avatarUrl: user.avatarUrl || null,
-      usesDogAvatar: user.usesDogAvatar || false
+      usesDogAvatar: user.usesDogAvatar || false,
+      theme: user.theme || "light"
     };
     
     this.users.set(id, newUser);
@@ -555,6 +566,19 @@ export class MemStorage implements IStorage {
       ...existingUser, 
       avatarUrl, 
       usesDogAvatar 
+    };
+    
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserTheme(id: number, theme: string): Promise<User | undefined> {
+    const existingUser = this.users.get(id);
+    if (!existingUser) return undefined;
+    
+    const updatedUser = { 
+      ...existingUser, 
+      theme
     };
     
     this.users.set(id, updatedUser);

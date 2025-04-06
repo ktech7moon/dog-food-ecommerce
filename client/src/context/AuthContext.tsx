@@ -15,6 +15,7 @@ export type User = {
   country?: string;
   avatarUrl?: string | null;
   usesDogAvatar?: boolean | null;
+  theme?: string;
 };
 
 interface AuthContextType {

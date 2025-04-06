@@ -2,10 +2,9 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-// Immediately set light mode to prevent flash of dark theme
-document.documentElement.classList.remove('dark');
+// Initialize with a default theme class to prevent flash
+// The actual theme will be set by ThemeContext based on user preference
 document.documentElement.classList.add('light');
-localStorage.setItem('theme', 'light');
 
 createRoot(document.getElementById("root")!).render(
   <App />

@@ -1,5 +1,7 @@
 import { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -13,6 +15,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const { toast } = useToast();
+  
   // Get the initial theme from localStorage or default to 'light'
   const [theme, setThemeState] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme') as Theme;
@@ -25,12 +29,60 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // This helps us determine the actual 'light' or 'dark' theme based on system preference
   // Force 'light' as the default resolved theme
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+  
+  // Track authentication status
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Update the theme in localStorage and the document attribute
-  const setTheme = (newTheme: Theme) => {
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/user', {
+          credentials: 'include'
+        });
+        
+        if (res.ok) {
+          const userData = await res.json();
+          setIsAuthenticated(true);
+          
+          // If the user has a theme preference stored in the database, use it
+          if (userData.theme) {
+            const userTheme = userData.theme as Theme;
+            setThemeState(userTheme);
+            localStorage.setItem('theme', userTheme);
+          }
+        } else {
+          // If not authenticated, default to light theme
+          setThemeState('light');
+          localStorage.setItem('theme', 'light');
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  // Update the theme in localStorage and the database if authenticated
+  const setTheme = async (newTheme: Theme) => {
     setIsThemeChanging(true);
     setThemeState(newTheme);
     localStorage.setItem('theme', newTheme);
+    
+    // If user is authenticated, save their theme preference to the database
+    if (isAuthenticated && (newTheme === 'light' || newTheme === 'dark')) {
+      try {
+        await apiRequest('PUT', '/api/auth/user/theme', { theme: newTheme });
+      } catch (error) {
+        console.error('Error saving theme preference:', error);
+        toast({
+          title: 'Error',
+          description: 'Could not save your theme preference',
+          variant: 'destructive'
+        });
+      }
+    }
     
     // Reset the changing state after animation completes
     setTimeout(() => {
