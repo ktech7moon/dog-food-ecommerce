@@ -418,7 +418,7 @@ export class MemStorage implements IStorage {
       description: "A perfect blend of tender chicken, quinoa, eggs, and fresh vegetables. Rich in protein and essential nutrients.",
       protein: "chicken",
       price: 24.99,
-      imageUrl: "https://images.unsplash.com/photo-1623610790421-3b1ff2de9974",
+      imageUrl: "/chicken.jpg",
       isBestseller: true,
       rating: 5.0,
       reviewCount: 124
