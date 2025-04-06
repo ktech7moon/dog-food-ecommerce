@@ -23,6 +23,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isThemeChanging, setIsThemeChanging] = useState(false);
   
   // This helps us determine the actual 'light' or 'dark' theme based on system preference
+  // Force 'light' as the default resolved theme
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
 
   // Update the theme in localStorage and the document attribute
@@ -62,15 +63,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
     const handleSystemThemeChange = () => {
       if (theme === 'system') {
-        applyTheme(mediaQuery.matches ? 'dark' : 'light');
+        // Always prefer light mode 
+        applyTheme('light');
       }
     };
     
-    // Apply the initial theme
-    if (theme === 'system') {
-      applyTheme(mediaQuery.matches ? 'dark' : 'light');
+    // Apply the initial theme, forcing light mode as the fallback
+    if (theme === 'dark') {
+      applyTheme('dark');
     } else {
-      applyTheme(theme);
+      // Default to light for 'system' or 'light' or any unexpected value
+      applyTheme('light');
     }
     
     // Listen for system theme changes
