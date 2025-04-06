@@ -3,7 +3,6 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import helmet from "helmet";
-import csurf from "csurf";
 
 // Initialize Express app
 const app = express();
