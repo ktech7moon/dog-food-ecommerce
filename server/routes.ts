@@ -178,7 +178,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       city: user.city,
       state: user.state,
       zipCode: user.zipCode,
-      country: user.country
+      country: user.country,
+      avatarUrl: user.avatarUrl,
+      usesDogAvatar: user.usesDogAvatar
     });
   });
 
@@ -210,12 +212,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
           city: updatedUser.city,
           state: updatedUser.state,
           zipCode: updatedUser.zipCode,
-          country: updatedUser.country
+          country: updatedUser.country,
+          avatarUrl: updatedUser.avatarUrl,
+          usesDogAvatar: updatedUser.usesDogAvatar
         });
       });
     } catch (error) {
       console.error('Error updating user:', error);
       return res.status(500).json({ message: 'Error updating user' });
+    }
+  });
+  
+  // Avatar update endpoint
+  app.put('/api/auth/user/avatar', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const userId = user.id;
+      const { avatarUrl, usesDogAvatar } = req.body;
+      
+      // Validate required fields
+      if (avatarUrl === undefined) {
+        return res.status(400).json({ message: 'Avatar URL is required' });
+      }
+      
+      // Update user avatar in the database
+      const updatedUser = await storage.updateUserAvatar(
+        userId, 
+        avatarUrl, 
+        !!usesDogAvatar
+      );
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Update the session with the new user data
+      req.login(updatedUser, (err) => {
+        if (err) {
+          return res.status(500).json({ message: 'Error updating session' });
+        }
+        
+        // Return the updated user data
+        return res.json({
+          id: updatedUser.id,
+          email: updatedUser.email,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          avatarUrl: updatedUser.avatarUrl,
+          usesDogAvatar: updatedUser.usesDogAvatar
+        });
+      });
+    } catch (error) {
+      console.error('Error updating user avatar:', error);
+      return res.status(500).json({ message: 'Error updating user avatar' });
     }
   });
 

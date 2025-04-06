@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   state: text("state"),
   zipCode: text("zip_code"),
   country: text("country"),
+  avatarUrl: text("avatar_url"),
+  usesDogAvatar: boolean("uses_dog_avatar").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
