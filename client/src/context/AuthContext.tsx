@@ -164,6 +164,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Refresh cart data after signup
       queryClient.invalidateQueries({ queryKey: ['/api/cart'] });
+      
+      // Redirect to welcome page if onboarding is needed
+      if (data.needsOnboarding) {
+        window.location.href = "/welcome";
+      }
     } catch (error: any) {
       console.error("Signup error:", error);
       

@@ -9,6 +9,8 @@ import Checkout from "@/pages/Checkout";
 import Account from "@/pages/Account";
 import OrderHistory from "@/pages/OrderHistory";
 import AuthPage from "@/pages/auth-page";
+import Welcome from "@/pages/Welcome";
+import VerifyEmail from "@/pages/VerifyEmail";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -25,6 +27,8 @@ function Router() {
       <Route path="/account" component={Account}/>
       <Route path="/orders" component={OrderHistory}/>
       <Route path="/auth" component={AuthPage}/>
+      <Route path="/welcome" component={Welcome}/>
+      <Route path="/verify-email" component={VerifyEmail}/>
       <Route component={NotFound} />
     </Switch>
   );

@@ -100,9 +100,17 @@ const EnhancedAuthModal = ({ isOpen, onClose, initialTab = "login" }: EnhancedAu
       
       // Handle success
       const data = await res.json();
-      // Call the auth context to update the user state
-      window.location.reload(); // Simple reload to update the auth state
+      
+      // Close the modal
       onClose();
+      
+      // If onboarding is needed, redirect to welcome page
+      if (data.needsOnboarding) {
+        window.location.href = "/welcome";
+      } else {
+        // Otherwise, just reload to update the auth state
+        window.location.reload();
+      }
     } catch (error) {
       console.error("Signup error:", error);
     } finally {

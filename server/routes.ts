@@ -98,22 +98,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash password
       const hashedPassword = await bcrypt.hash(validatedData.password, 10);
       
+      // For a real application, we would create a verification token here
+      // const verificationToken = crypto.randomBytes(32).toString('hex');
+      // Store the token with the user or in a separate table with an expiry
+      
       // Create user
       const user = await storage.createUser({
         ...validatedData,
-        password: hashedPassword
+        password: hashedPassword,
+        // In a real app: emailVerified: false,
+        // In a real app: verificationToken: verificationToken
       });
 
       // Create empty cart for user
       await storage.createCart({ userId: user.id });
 
+      // In a real application, we would send a verification email here
+      // sendVerificationEmail(user.email, verificationToken);
+      
       // Login the user
       req.login(user, (err) => {
         if (err) {
           return res.status(500).json({ message: 'Error logging in after registration' });
         }
+        
+        // Include a needsOnboarding flag to tell the client to redirect to welcome page
         return res.status(201).json({ 
           message: 'User registered successfully',
+          needsOnboarding: true,
           user: {
             id: user.id,
             email: user.email,
@@ -127,6 +139,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Validation error', errors: error.errors });
       }
       return res.status(500).json({ message: 'Error registering user' });
+    }
+  });
+  
+  // Email verification endpoint (simulated for now)
+  app.post('/api/auth/verify-email', (req: Request, res: Response) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ message: 'Verification token is required' });
+      }
+      
+      // In a real application, we would validate the token against what's stored in the database
+      // const user = await storage.getUserByVerificationToken(token);
+      // if (!user) {
+      //   return res.status(400).json({ message: 'Invalid or expired verification token' });
+      // }
+      
+      // Update the user to mark their email as verified
+      // await storage.updateUserEmailVerification(user.id, true);
+      
+      // For now, we'll just return a success response
+      return res.status(200).json({ 
+        message: 'Email verified successfully' 
+      });
+    } catch (error) {
+      return res.status(500).json({ message: 'Error verifying email' });
     }
   });
 
