@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import session from "express-session";
@@ -46,21 +46,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? 'strict' : 'lax'
-    } 
-  });
-  
-  // Apply CSRF protection to all routes except for GET requests and specific API endpoints
-  app.use((req, res, next) => {
-    // Skip CSRF protection for GET requests and certain endpoints
-    const skipCsrf = req.method === 'GET' || 
-                     req.path === '/api/auth/login' || 
-                     req.path === '/api/auth/register' ||
-                     req.path === '/api/auth/logout';
-    
-    if (skipCsrf) {
-      next();
-    } else {
-      csrfProtection(req, res, next);
     }
   });
   
@@ -68,6 +53,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/csrf-token', csrfProtection, (req, res) => {
     res.json({ csrfToken: req.csrfToken() });
   });
+  
+  // Create two middleware functions - one to check if we should use CSRF, another to actually apply it
+  const applyCsrf = (req: Request, res: Response, next: NextFunction) => {
+    // Skip CSRF protection for GET requests and authentication endpoints
+    const skipCsrf = req.method === 'GET' || 
+                    req.path === '/api/auth/login' || 
+                    req.path === '/api/auth/register' ||
+                    req.path === '/api/auth/logout';
+    
+    if (skipCsrf) {
+      next();
+    } else {
+      csrfProtection(req, res, next);
+    }
+  };
+  
+  // Apply CSRF middleware to all API routes
+  app.use('/api', applyCsrf);
 
   // Passport local strategy
   passport.use(new LocalStrategy(
@@ -105,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Middleware to check if user is logged in
-  const isAuthenticated = (req: Request, res: Response, next: Function) => {
+  const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
     console.log("Authentication check:", { 
       isAuthenticated: req.isAuthenticated(),
       user: req.user ? 'present' : 'absent',
@@ -234,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/auth/login', (req: Request, res: Response, next: Function) => {
+  app.post('/api/auth/login', (req: Request, res: Response, next: NextFunction) => {
     console.log("Login attempt for:", req.body.email);
     
     passport.authenticate('local', (err: any, user: any, info: any) => {

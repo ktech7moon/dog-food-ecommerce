@@ -72,11 +72,32 @@ export const csrfRequest = async (
   data?: any,
   extraHeaders?: Record<string, string>
 ): Promise<Response> => {
-  // Only add CSRF tokens to non-GET requests
-  if (method.toUpperCase() !== 'GET') {
-    const csrfHeaders = await addCsrfHeader(extraHeaders);
-    return apiRequest(method, url, data, csrfHeaders);
+  try {
+    // Only add CSRF tokens to non-GET requests that need protection
+    if (method.toUpperCase() !== 'GET') {
+      // Skip CSRF for authentication endpoints
+      const skipCsrfPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/logout'];
+      const shouldAddCsrf = !skipCsrfPaths.some(path => url.endsWith(path));
+      
+      if (shouldAddCsrf) {
+        const csrfHeaders = await addCsrfHeader(extraHeaders || {});
+        return apiRequest(method, url, data, csrfHeaders);
+      }
+    }
+    
+    return apiRequest(method, url, data, extraHeaders);
+  } catch (error) {
+    // If we get a 403 error, it might be a CSRF token issue, try to get a new token and retry
+    if (error instanceof Error && error.message.includes('403')) {
+      console.log("CSRF token might be invalid or expired, getting a new one");
+      await fetchCsrfToken(); // Get a fresh token
+      
+      if (method.toUpperCase() !== 'GET') {
+        const csrfHeaders = await addCsrfHeader(extraHeaders || {});
+        return apiRequest(method, url, data, csrfHeaders);
+      }
+    }
+    
+    throw error;
   }
-  
-  return apiRequest(method, url, data, extraHeaders);
 };

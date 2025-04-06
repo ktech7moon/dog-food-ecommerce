@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { csrfRequest } from "@/lib/csrf";
 
 export type User = {
   id: number;
@@ -245,12 +246,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      const res = await apiRequest("PUT", "/api/auth/user", userData);
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to update profile");
-      }
+      // Use CSRF-protected request for profile updates
+      const res = await csrfRequest("PUT", "/api/auth/user", userData);
       
       const updatedUser = await res.json();
       
@@ -274,7 +271,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Update profile error:", error);
       toast({
         title: "Update failed",
-        description: "There was a problem updating your profile",
+        description: "There was a problem updating your profile. Please try again.",
         variant: "destructive",
         duration: 3000,
       });
@@ -288,15 +285,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      const res = await apiRequest("PUT", "/api/auth/user/avatar", { 
+      // Use the CSRF-protected request specifically for avatar updates
+      const res = await csrfRequest("PUT", "/api/auth/user/avatar", { 
         avatarUrl, 
         usesDogAvatar 
       });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to update avatar");
-      }
       
       const updatedUser = await res.json();
       
@@ -320,7 +313,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Update avatar error:", error);
       toast({
         title: "Update failed",
-        description: "There was a problem updating your avatar",
+        description: "There was a problem updating your avatar. Please try again.",
         variant: "destructive",
         duration: 3000,
       });
