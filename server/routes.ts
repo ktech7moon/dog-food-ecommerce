@@ -39,17 +39,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.initialize());
   app.use(passport.session());
   
-  // CSRF protection is temporarily disabled to fix authentication issues
+  // Properly configure CSRF protection
+  const csrfProtection = csrf({
+    cookie: {
+      key: '_csrf',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? 'strict' : 'lax'
+    }
+  });
   
-  // Create a pass-through middleware that doesn't actually check CSRF
+  // CSRF token endpoint - to get a new token on the client side
+  app.get('/api/csrf-token', csrfProtection, (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+  });
+  
+  // Create a middleware that selectively applies CSRF protection
   const applyCsrf = (req: Request, res: Response, next: NextFunction) => {
-    next();
+    // Skip CSRF for authentication endpoints but apply it elsewhere
+    if (req.path === '/api/auth/login' || 
+        req.path === '/api/auth/register' || 
+        req.path === '/api/auth/logout' ||
+        req.path === '/api/csrf-token' ||
+        req.method === 'GET') {
+      next();
+    } else {
+      csrfProtection(req, res, next);
+    }
   };
   
-  // CSRF token endpoint - returns a dummy token for now
-  app.get('/api/csrf-token', (req, res) => {
-    res.json({ csrfToken: 'dummy-csrf-token' });
-  });
+  // Apply CSRF middleware to all API routes
+  app.use('/api', applyCsrf);
 
   // Passport local strategy
   passport.use(new LocalStrategy(
