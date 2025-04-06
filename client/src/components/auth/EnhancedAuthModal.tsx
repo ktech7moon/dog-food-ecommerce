@@ -93,22 +93,26 @@ const EnhancedAuthModal = ({ isOpen, onClose, initialTab = "login" }: EnhancedAu
         credentials: 'include'
       });
       
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
-      
-      // Handle success
+      // Parse response json
       const data = await res.json();
+      
+      // For debugging
+      console.log("Registration response:", data);
+      
+      if (!res.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
       
       // Close the modal
       onClose();
       
       // If onboarding is needed, redirect to welcome page
       if (data.needsOnboarding) {
+        console.log("Redirecting to welcome page");
         window.location.href = "/welcome";
       } else {
         // Otherwise, just reload to update the auth state
+        console.log("No onboarding flag found, reloading");
         window.location.reload();
       }
     } catch (error) {

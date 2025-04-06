@@ -62,6 +62,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Middleware to check if user is logged in
   const isAuthenticated = (req: Request, res: Response, next: Function) => {
+    console.log("Authentication check:", { 
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user ? 'present' : 'absent',
+      session: req.session ? 'present' : 'absent',
+      sessionId: req.session?.id || 'none'
+    });
+    
     if (req.isAuthenticated()) {
       return next();
     }
@@ -119,11 +126,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Login the user
       req.login(user, (err) => {
         if (err) {
+          console.error("Error during login after registration:", err);
           return res.status(500).json({ message: 'Error logging in after registration' });
         }
         
+        // For debugging
+        console.log("User registered successfully:", {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName
+        });
+        console.log("Sending registration response with needsOnboarding flag");
+        
         // Include a needsOnboarding flag to tell the client to redirect to welcome page
-        return res.status(201).json({ 
+        const responseData = { 
           message: 'User registered successfully',
           needsOnboarding: true,
           user: {
@@ -132,7 +149,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             firstName: user.firstName,
             lastName: user.lastName
           }
-        });
+        };
+        
+        console.log("Registration response data:", responseData);
+        
+        return res.status(201).json(responseData);
       });
     } catch (error: any) {
       if (error.errors) {
@@ -170,17 +191,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post('/api/auth/login', (req: Request, res: Response, next: Function) => {
+    console.log("Login attempt for:", req.body.email);
+    
     passport.authenticate('local', (err: any, user: any, info: any) => {
       if (err) {
+        console.error("Login authentication error:", err);
         return next(err);
       }
+      
       if (!user) {
+        console.log("Login failed - invalid credentials for:", req.body.email);
         return res.status(401).json({ message: info.message || 'Authentication failed' });
       }
+      
+      console.log("Authentication successful for user:", user.email);
+      
       req.login(user, (err) => {
         if (err) {
+          console.error("Login session creation error:", err);
           return next(err);
         }
+        
+        console.log("Login complete - session created for:", user.email);
+        
         return res.json({ 
           message: 'Login successful',
           user: {
@@ -204,10 +237,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get('/api/auth/user', (req: Request, res: Response) => {
+    console.log("GET /api/auth/user session check:", { 
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user ? 'present' : 'absent',
+      session: req.session ? 'present' : 'absent',
+      sessionId: req.session?.id || 'none'
+    });
+    
     if (!req.user) {
+      console.log("User endpoint: Not authenticated");
       return res.status(401).json({ message: 'Not authenticated' });
     }
+    
     const user = req.user as any;
+    console.log("User endpoint: Found authenticated user:", { 
+      id: user.id,
+      email: user.email
+    });
+    
     return res.json({
       id: user.id,
       email: user.email,

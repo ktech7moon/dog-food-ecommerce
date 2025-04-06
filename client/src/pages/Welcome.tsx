@@ -16,9 +16,20 @@ const Welcome = () => {
   const [progress, setProgress] = useState(25);
   const [emailVerified, setEmailVerified] = useState(false);
   
+  // Debug logging on component mount
+  useEffect(() => {
+    console.log("Welcome component mounted");
+    console.log("User state:", user);
+  }, []);
+  
   // Calculate profile completion percentage
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.log("No user found in Welcome page");
+      return;
+    }
+    
+    console.log("Calculating profile completion for user:", user);
     
     let completed = 1; // Start with 1 for having an account
     let total = 4; // Total number of steps
@@ -40,6 +51,7 @@ const Welcome = () => {
   };
   
   if (!user) {
+    console.log("No user found, redirecting to home");
     navigate("/");
     return null;
   }

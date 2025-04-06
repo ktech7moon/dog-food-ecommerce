@@ -152,6 +152,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const res = await apiRequest("POST", "/api/auth/register", userData);
       const data = await res.json();
       
+      console.log("Signup response:", data);
+      
       setUser(data.user);
       closeSignupModal();
       closeEnhancedAuthModal();
@@ -167,7 +169,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Redirect to welcome page if onboarding is needed
       if (data.needsOnboarding) {
+        console.log("Redirecting to welcome page from AuthContext");
         window.location.href = "/welcome";
+      } else {
+        console.log("No onboarding flag found in AuthContext");
       }
     } catch (error: any) {
       console.error("Signup error:", error);
