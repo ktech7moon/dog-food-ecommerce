@@ -674,7 +674,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Stripe with proper typing
   // The stripe-js package expects a specific version format that's compatible with their API
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
-  const stripe = new Stripe(stripeSecretKey);
+  const stripe = new Stripe(stripeSecretKey, {
+    apiVersion: '2023-10-16',  // Specify the API version
+  });
 
   // Create a payment intent for one-time purchases
   app.post('/api/create-payment-intent', isAuthenticated, async (req: Request, res: Response) => {
