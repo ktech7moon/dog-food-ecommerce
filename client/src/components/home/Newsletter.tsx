@@ -59,7 +59,7 @@ const Newsletter = () => {
   };
 
   return (
-    <section className="py-12 bg-gray-50">
+    <section className="py-12 bg-muted/50">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center">
           <h3 className="text-2xl font-bold mb-4">Join Our Pack</h3>
@@ -75,7 +75,7 @@ const Newsletter = () => {
                       <Input 
                         type="email" 
                         placeholder="Your email address" 
-                        className="p-3 border-2 border-gray-300 rounded-lg"
+                        className="p-3 border-2 border-input rounded-lg"
                         {...field} 
                         disabled={isSubmitting}
                       />
@@ -93,7 +93,7 @@ const Newsletter = () => {
               </Button>
             </form>
           </Form>
-          <p className="text-sm mt-4 text-gray-500">We respect your privacy and will never share your information. Unsubscribe anytime.</p>
+          <p className="text-sm mt-4 text-muted-foreground">We respect your privacy and will never share your information. Unsubscribe anytime.</p>
         </div>
       </div>
     </section>
