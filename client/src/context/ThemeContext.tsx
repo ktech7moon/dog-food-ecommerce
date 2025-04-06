@@ -115,16 +115,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
     const handleSystemThemeChange = () => {
       if (theme === 'system') {
-        // Always prefer light mode 
-        applyTheme('light');
+        // Use the system preference for dark/light mode
+        applyTheme(mediaQuery.matches ? 'dark' : 'light');
       }
     };
     
-    // Apply the initial theme, forcing light mode as the fallback
+    // Apply the initial theme based on selection
     if (theme === 'dark') {
       applyTheme('dark');
+    } else if (theme === 'light') {
+      applyTheme('light');
+    } else if (theme === 'system') {
+      // For system theme, use the system preference
+      applyTheme(mediaQuery.matches ? 'dark' : 'light');
     } else {
-      // Default to light for 'system' or 'light' or any unexpected value
+      // Fallback for any unexpected value
       applyTheme('light');
     }
     

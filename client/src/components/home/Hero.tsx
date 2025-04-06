@@ -11,11 +11,11 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative bg-white">
+    <section className="relative bg-background">
       <div className="container mx-auto px-4 py-12 md:py-20">
         <div className="md:flex items-center">
           <div className="md:w-1/2 mb-8 md:mb-0">
-            <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">Real Food for Your <span className="text-primary bg-white px-1 py-0.5 rounded">Real Best Friend</span></h1>
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">Real Food for Your <span className="text-primary-foreground dark:text-foreground bg-primary px-2 py-1 rounded">Real Best Friend</span></h1>
             <p className="text-lg mb-8">Homemade, nutritious dog food delivered to your door. Made with human-grade ingredients your pup will love.</p>
             <div className="flex flex-wrap gap-4">
               <Button 
@@ -27,7 +27,7 @@ const Hero = () => {
               <Button 
                 onClick={() => scrollToSection('how-it-works')}
                 variant="outline"
-                className="bg-white border-2 border-primary hover:bg-primary/5 text-primary font-semibold rounded-full px-8 py-6"
+                className="bg-background border-2 border-primary hover:bg-primary/5 text-primary font-semibold rounded-full px-8 py-6"
               >
                 Learn More
               </Button>
@@ -60,7 +60,7 @@ const Hero = () => {
       </div>
       
       {/* Trust badges */}
-      <div className="bg-gray-50 py-6 shadow-inner">
+      <div className="bg-gray-50 dark:bg-gray-800 py-6 shadow-inner">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
             <div className="flex flex-col items-center">
