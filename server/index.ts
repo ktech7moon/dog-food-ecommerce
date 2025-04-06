@@ -2,17 +2,62 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
+import helmet from "helmet";
+import csurf from "csurf";
 
+// Initialize Express app
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(express.static(path.join(process.cwd(), 'public')));
 
-// Add CORS headers
+// Security middleware - set security-related HTTP headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "js.stripe.com"],
+      connectSrc: ["'self'", "api.stripe.com"],
+      frameSrc: ["'self'", "js.stripe.com", "hooks.stripe.com"],
+      imgSrc: ["'self'", "data:", "cdn.example.com"]
+    }
+  },
+  // Recommended for applications behind a reverse proxy
+  xssFilter: true,
+  hsts: {
+    maxAge: 31536000, // 1 year in seconds
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+
+// Parse application/json
+app.use(express.json({ limit: '1mb' }));
+// Parse application/x-www-form-urlencoded
+app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+// Serve static files
+app.use(express.static(path.join(process.cwd(), 'public'), {
+  maxAge: 31557600000 // 1 year in milliseconds
+}));
+
+// Add CORS headers - restrict to specific origins in production
+const allowedOrigins = ['http://localhost:5000'];
+// In production, add your domain
+if (process.env.NODE_ENV === 'production') {
+  allowedOrigins.push('https://yourdomain.com');
+}
+
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    // In development, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, CSRF-Token, X-CSRF-Token');
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {

@@ -6,6 +6,7 @@ import MemoryStore from "memorystore";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
+import csrf from "csurf";
 import { z } from "zod";
 import Stripe from "stripe";
 import { insertUserSchema, insertContactSubmissionSchema, insertReviewSchema, CartCustomization } from "@shared/schema";
@@ -13,17 +14,60 @@ import { insertUserSchema, insertContactSubmissionSchema, insertReviewSchema, Ca
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
   const SessionStore = MemoryStore(session);
+  
+  // Ensure a strong session secret is used in production
+  const sessionSecret = process.env.SESSION_SECRET || (process.env.NODE_ENV === "production" 
+    ? (() => { throw new Error("SESSION_SECRET must be set in production environment"); })() 
+    : "pawsome-meals-dev-secret");
+  
   app.use(session({
-    secret: process.env.SESSION_SECRET || "pawsome-meals-secret",
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 },
-    store: new SessionStore({ checkPeriod: 86400000 }) // prune expired entries every 24h
+    cookie: { 
+      secure: process.env.NODE_ENV === "production", 
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: process.env.NODE_ENV === "production" ? 'strict' : 'lax'
+    },
+    store: new SessionStore({ 
+      checkPeriod: 86400000 // prune expired entries every 24h
+    })
   }));
 
   // Configure passport
   app.use(passport.initialize());
   app.use(passport.session());
+  
+  // Configure CSRF protection
+  const csrfProtection = csrf({ 
+    cookie: { 
+      key: '_csrf',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? 'strict' : 'lax'
+    } 
+  });
+  
+  // Apply CSRF protection to all routes except for GET requests and specific API endpoints
+  app.use((req, res, next) => {
+    // Skip CSRF protection for GET requests and certain endpoints
+    const skipCsrf = req.method === 'GET' || 
+                     req.path === '/api/auth/login' || 
+                     req.path === '/api/auth/register' ||
+                     req.path === '/api/auth/logout';
+    
+    if (skipCsrf) {
+      next();
+    } else {
+      csrfProtection(req, res, next);
+    }
+  });
+  
+  // CSRF token endpoint - to get a new token on the client side
+  app.get('/api/csrf-token', csrfProtection, (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+  });
 
   // Passport local strategy
   passport.use(new LocalStrategy(

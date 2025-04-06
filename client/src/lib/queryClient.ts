@@ -1,20 +1,56 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+/**
+ * Throws an error if the response is not OK
+ * Attempts to parse error message from JSON response
+ */
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    try {
+      // Try to parse JSON error
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await res.json();
+        if (errorData.message) {
+          throw new Error(errorData.message);
+        }
+      }
+      
+      // Fall back to text if not JSON or no message
+      const text = (await res.text()) || res.statusText;
+      throw new Error(`${res.status}: ${text}`);
+    } catch (e) {
+      if (e instanceof Error) {
+        throw e;
+      }
+      // If JSON parsing fails, use the status text
+      throw new Error(`${res.status}: ${res.statusText}`);
+    }
   }
 }
 
+/**
+ * Makes an API request with proper error handling and CSRF protection
+ * @param method - HTTP method 
+ * @param url - API endpoint
+ * @param data - Optional request data
+ * @param extraHeaders - Optional additional headers
+ * @returns The fetch response
+ */
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  extraHeaders?: Record<string, string>
 ): Promise<Response> {
+  let headers: Record<string, string> = {
+    ...(data ? { "Content-Type": "application/json" } : {}),
+    ...(extraHeaders || {})
+  };
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });

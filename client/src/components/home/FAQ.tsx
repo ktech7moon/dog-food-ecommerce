@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useFAQs } from "@/hooks/useFAQ";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -8,6 +8,21 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// Define the FAQ interface
+interface FAQ {
+  id: number;
+  question: string;
+  answer: string;
+}
+
+// Create a custom hook for FAQs
+const useFAQs = () => {
+  return useQuery<FAQ[], Error>({
+    queryKey: ['/api/faqs'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
 
 const FAQ = () => {
   const { data: faqs, isLoading, error } = useFAQs();
@@ -34,7 +49,7 @@ const FAQ = () => {
 
     return (
       <Accordion type="single" collapsible className="w-full">
-        {faqs.map((faq) => (
+        {faqs.map((faq: FAQ) => (
           <AccordionItem key={faq.id} value={`faq-${faq.id}`} className="mb-4 border-0">
             <AccordionTrigger className="bg-light rounded-xl p-5 font-heading font-semibold hover:bg-light/80 transition">
               {faq.question}
