@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import Home from "@/pages/Home";
 import Checkout from "@/pages/Checkout";
 import Account from "@/pages/Account";
@@ -37,20 +38,22 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <CartProvider>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <Router />
-            <Footer />
-            <CartSidebar />
-            <LoginModal />
-            <SignupModal />
-            <EnhancedAuthModalWithContext />
-          </div>
-          <Toaster />
-        </CartProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <CartProvider>
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <Router />
+              <Footer />
+              <CartSidebar />
+              <LoginModal />
+              <SignupModal />
+              <EnhancedAuthModalWithContext />
+            </div>
+            <Toaster />
+          </CartProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
