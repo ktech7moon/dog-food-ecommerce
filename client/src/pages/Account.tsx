@@ -19,7 +19,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Helmet } from "react-helmet";
 import { Separator } from "@/components/ui/separator";
-import { User, Package, LogOut, ChevronRight } from "lucide-react";
+import { User, Package, LogOut, ChevronRight, Camera } from "lucide-react";
+import { UserAvatar, AvatarModal } from "@/components/profile";
 
 const profileFormSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -136,6 +137,32 @@ const Account = () => {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium mb-4">Personal Details</h3>
+                    
+                    {/* Avatar Section */}
+                    <div className="flex items-center mb-6">
+                      <div className="relative mr-6">
+                        <UserAvatar size="lg" className="w-24 h-24" />
+                        <AvatarModal 
+                          trigger={
+                            <Button 
+                              size="icon" 
+                              variant="outline" 
+                              className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+                            >
+                              <Camera className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-medium">{user.firstName} {user.lastName}</h4>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Click the camera icon to change your avatar
+                        </p>
+                      </div>
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}

@@ -5,10 +5,19 @@ import { useCart } from "@/context/CartContext";
 import MobileMenu from "./MobileMenu";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, User, ShoppingCart, Menu } from "lucide-react";
+import { UserAvatar } from "@/components/profile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, openLoginModal, openEnhancedAuthModal } = useAuth();
+  const { user, openLoginModal, openEnhancedAuthModal, logout } = useAuth();
   const { cart, openCart } = useCart();
 
   const toggleMobileMenu = () => {
@@ -42,16 +51,42 @@ const Header = () => {
           </nav>
           
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="hidden md:flex hover:text-accent transition"
-              onClick={user ? () => {} : () => openEnhancedAuthModal("login")}
-            >
-              <Link href={user ? "/account" : "#"}>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <UserAvatar size="sm" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <Link href="/account">
+                    <DropdownMenuItem className="cursor-pointer">
+                      Profile
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/orders">
+                    <DropdownMenuItem className="cursor-pointer">
+                      Orders
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer" onClick={logout}>
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="hidden md:flex hover:text-accent transition"
+                onClick={() => openEnhancedAuthModal("login")}
+              >
                 <User size={20} />
-              </Link>
-            </Button>
+              </Button>
+            )}
             <Button 
               variant="ghost" 
               size="icon"

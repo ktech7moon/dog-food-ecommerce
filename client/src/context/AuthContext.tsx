@@ -13,6 +13,8 @@ export type User = {
   state?: string;
   zipCode?: string;
   country?: string;
+  avatarUrl?: string | null;
+  usesDogAvatar?: boolean | null;
 };
 
 interface AuthContextType {
@@ -38,6 +40,7 @@ interface AuthContextType {
   }) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (userData: Partial<User>) => Promise<void>;
+  updateAvatar: (avatarUrl: string, usesDogAvatar: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -254,6 +257,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateAvatar = async (avatarUrl: string, usesDogAvatar: boolean) => {
+    try {
+      setIsLoading(true);
+      
+      const res = await apiRequest("PUT", "/api/auth/user/avatar", { 
+        avatarUrl, 
+        usesDogAvatar 
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to update avatar");
+      }
+      
+      const updatedUser = await res.json();
+      
+      // Update local state with new user data
+      setUser(prevUser => {
+        if (!prevUser) return updatedUser;
+        return { ...prevUser, ...updatedUser };
+      });
+      
+      toast({
+        title: "Avatar updated",
+        description: "Your avatar has been updated successfully",
+        duration: 3000,
+      });
+      
+      // Invalidate the user query to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      
+      return updatedUser;
+    } catch (error) {
+      console.error("Update avatar error:", error);
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating your avatar",
+        variant: "destructive",
+        duration: 3000,
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -271,7 +320,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       login,
       signup,
       logout,
-      updateProfile
+      updateProfile,
+      updateAvatar
     }}>
       {children}
     </AuthContext.Provider>
