@@ -13,7 +13,7 @@ const Ingredients = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   return (
-    <section id="ingredients" className="py-16 bg-white">
+    <section id="ingredients" className="py-16 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Quality Ingredients</h2>
@@ -21,7 +21,7 @@ const Ingredients = () => {
         </div>
         
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          <div className="bg-light rounded-xl p-6 text-center">
+          <div className="bg-muted rounded-xl p-6 text-center">
             <img 
               src="https://images.unsplash.com/photo-1602491674275-16a8f55ea82c" 
               alt="Free-range chicken" 
@@ -31,7 +31,7 @@ const Ingredients = () => {
             <p>Free-range chicken or grass-fed beef paired with farm-fresh eggs for complete amino acid profiles.</p>
           </div>
           
-          <div className="bg-light rounded-xl p-6 text-center">
+          <div className="bg-muted rounded-xl p-6 text-center">
             <img 
               src="https://images.unsplash.com/photo-1610725664285-7c57e6eeac3f" 
               alt="Quinoa grains" 
@@ -41,7 +41,7 @@ const Ingredients = () => {
             <p>Nutrient-rich quinoa and sweet potatoes provide sustained energy and essential vitamins.</p>
           </div>
           
-          <div className="bg-light rounded-xl p-6 text-center">
+          <div className="bg-muted rounded-xl p-6 text-center">
             <img 
               src="https://images.unsplash.com/photo-1593600012104-116a4eb8a3f4" 
               alt="Fresh vegetables" 
@@ -53,13 +53,13 @@ const Ingredients = () => {
         </div>
         
         <div className="mt-12 max-w-5xl mx-auto">
-          <div className="bg-light rounded-xl overflow-hidden shadow-lg">
+          <div className="bg-card rounded-xl overflow-hidden shadow-lg">
             <div className="md:flex">
               <div className="md:w-1/2 p-8">
                 <h3 className="text-2xl font-bold mb-4">Transparency Matters</h3>
                 <p className="mb-6">We believe you should know exactly what's in your dog's food. That's why we list every ingredient and its source.</p>
                 
-                <div className="bg-white rounded-lg p-5">
+                <div className="bg-muted/80 dark:bg-muted rounded-lg p-5">
                   <h4 className="font-semibold mb-3">Nutritional Benefits:</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
