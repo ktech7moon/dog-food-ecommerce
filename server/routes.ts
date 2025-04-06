@@ -60,7 +60,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const skipCsrf = req.method === 'GET' || 
                     req.path === '/api/auth/login' || 
                     req.path === '/api/auth/register' ||
-                    req.path === '/api/auth/logout';
+                    req.path === '/api/auth/logout' ||
+                    req.path === '/api/csrf-token';
     
     if (skipCsrf) {
       next();

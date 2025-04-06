@@ -58,16 +58,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        // Initial fetch to check authentication status
         const res = await fetch('/api/auth/user', {
-          credentials: 'include'
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+          }
         });
         
+        // If authenticated, set the user data
         if (res.ok) {
           const userData = await res.json();
+          console.log("Authenticated user found:", userData.email);
           setUser(userData);
+        } else {
+          console.log("No authenticated user found");
+          setUser(null);
         }
       } catch (error) {
         console.error("Error fetching user:", error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -112,7 +123,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      const res = await apiRequest("POST", "/api/auth/login", { email, password });
+      // For login, use regular fetch with proper CORS credentials
+      // This endpoint is exempted from CSRF protection in the backend
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Login failed");
+      }
+      
       const data = await res.json();
       
       setUser(data.user);
@@ -150,9 +176,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      const res = await apiRequest("POST", "/api/auth/register", userData);
-      const data = await res.json();
+      // For registration, use regular fetch with proper CORS credentials
+      // This endpoint is exempted from CSRF protection in the backend
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+        credentials: 'include'
+      });
       
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Registration failed");
+      }
+      
+      const data = await res.json();
       console.log("Signup response:", data);
       
       // Set the user in context
@@ -217,7 +257,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      await apiRequest("POST", "/api/auth/logout", undefined);
+      // For logout, use regular fetch with proper CORS credentials
+      // This endpoint is exempted from CSRF protection in the backend
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Logout failed");
+      }
       
       setUser(null);
       
