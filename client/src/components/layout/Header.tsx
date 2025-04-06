@@ -2,12 +2,10 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
-import { useTheme } from "@/context/ThemeContext";
 import MobileMenu from "./MobileMenu";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, User, ShoppingCart, Menu } from "lucide-react";
 import { UserAvatar } from "@/components/profile";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +19,6 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, openLoginModal, openEnhancedAuthModal, logout } = useAuth();
   const { cart, openCart } = useCart();
-  const { resolvedTheme } = useTheme();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -54,9 +51,6 @@ const Header = () => {
           </nav>
           
           <div className="flex items-center space-x-4">
-            {/* Theme toggle button */}
-            <ThemeToggle />
-            
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
