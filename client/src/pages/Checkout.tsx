@@ -34,7 +34,19 @@ import {
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
 // This is your test publishable API key.
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+
+// Verify that we have a publishable key
+if (!stripePublicKey) {
+  console.error('Missing Stripe publishable key (VITE_STRIPE_PUBLIC_KEY)');
+}
+
+// Verify that it's a publishable key (starts with pk_)
+if (stripePublicKey && !stripePublicKey.startsWith('pk_')) {
+  console.error('Invalid Stripe publishable key. It should start with "pk_"');
+}
+
+const stripePromise = loadStripe(stripePublicKey);
 
 const shippingFormSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -254,8 +266,22 @@ const Checkout = () => {
       setShippingInfo(values);
       
       // Create a payment intent from the cart
+      console.log("Sending payment intent request to API...");
       const response = await apiRequest("POST", "/api/create-payment-intent-from-cart", {});
+      
+      // Check if the response was OK
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Payment intent API error:", errorData);
+        throw new Error(errorData.error || errorData.message || "Payment setup failed");
+      }
+      
       const data = await response.json();
+      console.log("Payment intent created successfully:", { clientSecret: data.clientSecret ? "Exists" : "Missing" });
+      
+      if (!data.clientSecret) {
+        throw new Error("No client secret returned from server");
+      }
       
       // Set the client secret to initialize Stripe Elements
       setClientSecret(data.clientSecret);
@@ -267,8 +293,8 @@ const Checkout = () => {
       console.error("Error setting up payment:", error);
       
       toast({
-        title: "Error",
-        description: error.message || "There was a problem setting up your payment. Please try again.",
+        title: "Payment Setup Error",
+        description: error.message || "There was a problem setting up your payment. The Stripe integration may be misconfigured.",
         variant: "destructive",
         duration: 5000,
       });

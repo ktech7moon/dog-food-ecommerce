@@ -672,11 +672,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Initialize Stripe with proper typing
-  // The stripe-js package expects a specific version format that's compatible with their API
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
-  const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: '2023-10-16',  // Specify the API version
-  });
+  
+  // Debug the key type (without exposing the full key)
+  if (stripeSecretKey) {
+    console.log('Stripe key type:', stripeSecretKey.substring(0, 3) + '...');
+    
+    // Validate it starts with sk_
+    if (!stripeSecretKey.startsWith('sk_')) {
+      console.error('ERROR: STRIPE_SECRET_KEY must start with "sk_" (secret key). You may be using a publishable key (pk_) by mistake.');
+    }
+  } else {
+    console.error('ERROR: No Stripe key found! Payment processing will fail.');
+  }
+  
+  // Initialize Stripe
+  let stripe: Stripe;
+  try {
+    stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2023-10-16' as any,  // Cast to any to bypass type checking for now
+    });
+    console.log('Stripe client initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize Stripe client:', error);
+    throw new Error('Failed to initialize Stripe. Payment processing will be unavailable.');
+  }
 
   // Create a payment intent for one-time purchases
   app.post('/api/create-payment-intent', isAuthenticated, async (req: Request, res: Response) => {
@@ -755,27 +775,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add shipping to amount
       amount += shipping;
       
-      // Create a payment intent with the cart total
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert dollars to cents
-        currency: 'usd',
-        metadata: {
-          userId: user.id.toString(),
-          cartId: cart.id.toString()
-        },
-        description: `Order for user ${user.email}`,
-      });
+      console.log('Creating payment intent for amount:', amount);
       
-      // Send the client secret to the client
-      res.json({
-        clientSecret: paymentIntent.client_secret,
-        amount: amount
-      });
+      // Verify Stripe is properly configured
+      if (!process.env.STRIPE_SECRET_KEY) {
+        console.error('Missing STRIPE_SECRET_KEY environment variable');
+        return res.status(500).json({
+          message: 'Stripe payment processing is not configured',
+          error: 'Missing Stripe API credentials'
+        });
+      }
+      
+      // Verify the key is a secret key (starts with sk_)
+      if (!process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
+        console.error('Invalid STRIPE_SECRET_KEY - should start with sk_');
+        return res.status(500).json({
+          message: 'Stripe payment processing is misconfigured',
+          error: 'Invalid Stripe API credentials format - using publishable key instead of secret key'
+        });
+      }
+      
+      try {
+        // Create a payment intent with the cart total
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(amount * 100), // Convert dollars to cents
+          currency: 'usd',
+          metadata: {
+            userId: user.id.toString(),
+            cartId: cart.id.toString()
+          },
+          description: `Order for user ${user.email}`,
+        });
+        
+        console.log('Payment intent created successfully with ID:', paymentIntent.id);
+        
+        // Send the client secret to the client
+        res.json({
+          clientSecret: paymentIntent.client_secret,
+          amount: amount
+        });
+      } catch (stripeError: any) {
+        console.error('Stripe API error details:', {
+          type: stripeError.type,
+          code: stripeError.code,
+          message: stripeError.message,
+          requestId: stripeError.requestId,
+          statusCode: stripeError.statusCode,
+          docUrl: stripeError.doc_url
+        });
+        
+        // Send a more user-friendly error message
+        return res.status(500).json({
+          message: 'Stripe payment processing error',
+          error: stripeError.message || 'An error occurred with the payment provider',
+          code: stripeError.code || 'unknown_error',
+          docUrl: stripeError.doc_url
+        });
+      }
     } catch (error: any) {
       console.error('Error creating payment intent from cart:', error);
       res.status(500).json({
         message: 'Error processing payment',
-        error: error.message
+        error: error.message || 'Unknown payment processing error'
       });
     }
   });
