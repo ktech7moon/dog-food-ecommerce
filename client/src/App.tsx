@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { useEffect } from "react";
+import { fetchCsrfToken } from "./lib/csrf";
 import Home from "@/pages/Home";
 import Checkout from "@/pages/Checkout";
 import Account from "@/pages/Account";
@@ -35,6 +37,34 @@ function Router() {
 }
 
 function App() {
+  // Initialize CSRF protection when the app loads
+  useEffect(() => {
+    // Fetch an initial CSRF token on app start
+    const initCsrfProtection = async () => {
+      try {
+        await fetchCsrfToken();
+        console.log("Successfully initialized CSRF protection");
+      } catch (error) {
+        console.error("Failed to initialize CSRF protection:", error);
+      }
+    };
+    
+    initCsrfProtection();
+    
+    // Set up periodic token refresh (every 25 minutes)
+    const tokenRefreshInterval = setInterval(async () => {
+      try {
+        await fetchCsrfToken();
+        console.log("Refreshed CSRF token");
+      } catch (error) {
+        console.error("Failed to refresh CSRF token:", error);
+      }
+    }, 25 * 60 * 1000); // 25 minutes
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(tokenRefreshInterval);
+  }, []);
+  
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
