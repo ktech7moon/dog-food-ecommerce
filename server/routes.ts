@@ -353,48 +353,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: 'Error updating user avatar' });
     }
   });
-  
-  // Update user theme preference
-  app.put('/api/auth/user/theme', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const user = req.user as any;
-      const userId = user.id;
-      const { theme } = req.body;
-      
-      // Validate theme value
-      if (!theme || (theme !== 'light' && theme !== 'dark')) {
-        return res.status(400).json({ message: 'Valid theme must be provided (light or dark)' });
-      }
-      
-      // Update user theme in the database
-      const updatedUser = await storage.updateUserTheme(userId, theme);
-      
-      if (!updatedUser) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-      
-      // Update the session with the new user data
-      req.login(updatedUser, (err) => {
-        if (err) {
-          return res.status(500).json({ message: 'Error updating session' });
-        }
-        
-        // Return the updated user data
-        return res.json({
-          id: updatedUser.id,
-          email: updatedUser.email,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-          avatarUrl: updatedUser.avatarUrl,
-          usesDogAvatar: updatedUser.usesDogAvatar,
-          theme: updatedUser.theme
-        });
-      });
-    } catch (error) {
-      console.error('Error updating user theme:', error);
-      return res.status(500).json({ message: 'Error updating user theme' });
-    }
-  });
 
   // PRODUCT ROUTES
   app.get('/api/products', async (req: Request, res: Response) => {

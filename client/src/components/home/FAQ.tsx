@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useFAQs, type FAQ as FAQType } from "@/hooks/useFAQ";
+import { useFAQs } from "@/hooks/useFAQ";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const FAQ = () => {
   const { data: faqs, isLoading, error } = useFAQs();
-  const faqsArray = Array.isArray(faqs) ? faqs : [];
 
   const renderFAQs = () => {
     if (isLoading) {
@@ -23,10 +22,10 @@ const FAQ = () => {
       ));
     }
 
-    if (error || !faqsArray || faqsArray.length === 0) {
+    if (error || !faqs || faqs.length === 0) {
       return (
-        <div className="text-center p-8 bg-muted rounded-xl">
-          <p className="text-muted-foreground">
+        <div className="text-center p-8 bg-light rounded-xl">
+          <p className="text-gray-500">
             {error ? "Error loading FAQs. Please try again later." : "No FAQs available at the moment."}
           </p>
         </div>
@@ -35,12 +34,12 @@ const FAQ = () => {
 
     return (
       <Accordion type="single" collapsible className="w-full">
-        {faqsArray.map((faq: FAQType) => (
+        {faqs.map((faq) => (
           <AccordionItem key={faq.id} value={`faq-${faq.id}`} className="mb-4 border-0">
-            <AccordionTrigger className="bg-muted rounded-xl p-5 font-heading font-semibold hover:bg-muted/80 transition">
+            <AccordionTrigger className="bg-light rounded-xl p-5 font-heading font-semibold hover:bg-light/80 transition">
               {faq.question}
             </AccordionTrigger>
-            <AccordionContent className="bg-card px-5 pb-5 rounded-b-xl">
+            <AccordionContent className="bg-white px-5 pb-5 rounded-b-xl">
               <div className="pt-3">{faq.answer}</div>
             </AccordionContent>
           </AccordionItem>
@@ -50,7 +49,7 @@ const FAQ = () => {
   };
 
   return (
-    <section id="faq" className="py-16 bg-background">
+    <section id="faq" className="py-16 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>

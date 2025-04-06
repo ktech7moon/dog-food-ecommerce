@@ -29,7 +29,7 @@ const HowItWorks = () => {
           </div>
         </div>
         
-        <div className="mt-16 bg-card rounded-xl shadow-lg overflow-hidden max-w-5xl mx-auto">
+        <div className="mt-16 bg-white rounded-xl shadow-lg overflow-hidden max-w-5xl mx-auto">
           <div className="md:flex">
             <div className="md:w-1/2 p-8">
               <h3 className="text-2xl font-bold mb-4">The Freshness Guarantee</h3>

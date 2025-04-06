@@ -17,7 +17,6 @@ export const users = pgTable("users", {
   country: text("country"),
   avatarUrl: text("avatar_url"),
   usesDogAvatar: boolean("uses_dog_avatar").default(false),
-  theme: text("theme").default("light"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -20,9 +19,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Helmet } from "react-helmet";
 import { Separator } from "@/components/ui/separator";
-import { User, Package, LogOut, ChevronRight, Camera, Moon, Sun, Palette } from "lucide-react";
+import { User, Package, LogOut, ChevronRight, Camera } from "lucide-react";
 import { UserAvatar, AvatarModal } from "@/components/profile";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 const profileFormSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -40,7 +38,6 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 const Account = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, updateProfile, logout } = useAuth();
-  const { theme, setTheme, resolvedTheme } = useTheme();
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   
@@ -124,10 +121,6 @@ const Account = () => {
           <TabsTrigger value="orders" className="gap-2">
             <Package className="h-4 w-4" />
             Orders
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="gap-2">
-            <Palette className="h-4 w-4" />
-            Appearance
           </TabsTrigger>
         </TabsList>
         
@@ -325,70 +318,6 @@ const Account = () => {
                 >
                   View Order History <ChevronRight className="h-4 w-4" />
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="appearance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Appearance Settings</CardTitle>
-              <CardDescription>
-                Customize your theme preferences and visual experience.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Theme Mode</h3>
-                  <div className="flex flex-col gap-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-base font-medium">Dark Mode</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Toggle between light and dark mode
-                        </p>
-                      </div>
-                      <ThemeToggle />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Button
-                        variant={theme === "light" ? "default" : "outline"}
-                        className="flex flex-col h-24 items-center justify-center gap-2 p-0"
-                        onClick={() => setTheme("light")}
-                      >
-                        <Sun className="h-6 w-6" />
-                        <span>Light</span>
-                      </Button>
-                      <Button
-                        variant={theme === "dark" ? "default" : "outline"}
-                        className="flex flex-col h-24 items-center justify-center gap-2 p-0"
-                        onClick={() => setTheme("dark")}
-                      >
-                        <Moon className="h-6 w-6" />
-                        <span>Dark</span>
-                      </Button>
-                      <Button
-                        variant={theme === "system" ? "default" : "outline"}
-                        className="flex flex-col h-24 items-center justify-center gap-2 p-0"
-                        onClick={() => setTheme("system")}
-                      >
-                        <Palette className="h-6 w-6" />
-                        <span>System</span>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Current theme: <span className="font-medium">{theme === "system" ? 
-                      `System (${resolvedTheme === "dark" ? "Dark" : "Light"})` : 
-                      theme.charAt(0).toUpperCase() + theme.slice(1)}</span>
-                  </p>
-                </div>
               </div>
             </CardContent>
           </Card>
