@@ -39,21 +39,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.initialize());
   app.use(passport.session());
   
-  // TEMPORARILY DISABLE CSRF PROTECTION FOR DEBUGGING
-  // We'll re-implement this properly once we identify the root cause
+  // CSRF PROTECTION - INCREMENTAL IMPLEMENTATION APPROACH
+  // Reintroducing CSRF protection methodically
   
-  // Create a pass-through middleware that doesn't actually check CSRF
-  const applyCsrf = (req: Request, res: Response, next: NextFunction) => {
-    next();
-  };
-  
-  // CSRF token endpoint - returns a dummy token for now
-  app.get('/api/csrf-token', (req: Request, res: Response) => {
-    console.log("Returning dummy CSRF token for diagnostics");
-    res.json({ csrfToken: 'dummy-csrf-token' });
+  // Set up proper CSRF protection with the csurf package
+  const csrfProtection = csrf({
+    cookie: {
+      key: '_csrf',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', // Use 'strict' in production for even more security
+      maxAge: 3600 * 1000 // 1 hour expiry
+    }
   });
   
-  // No need to apply the middleware as it doesn't do anything
+  // Create a real CSRF token endpoint
+  app.get('/api/csrf-token', csrfProtection, (req: Request, res: Response) => {
+    try {
+      const token = req.csrfToken();
+      console.log("Generated new CSRF token");
+      res.json({ csrfToken: token });
+    } catch (error) {
+      console.error("Error generating CSRF token:", error);
+      res.status(500).json({ message: "Failed to generate CSRF token" });
+    }
+  });
+  
+  // Create a selective CSRF middleware that exempts authentication endpoints
+  const applyCsrf = (req: Request, res: Response, next: NextFunction) => {
+    // List of paths that are exempt from CSRF protection for now
+    const exemptPaths = [
+      '/api/auth/login',
+      '/api/auth/register',
+      '/api/auth/logout',
+      '/api/csrf-token'
+    ];
+    
+    // Skip CSRF for GET requests and exempt paths
+    if (req.method === 'GET' || exemptPaths.includes(req.path)) {
+      console.log(`Skipping CSRF for ${req.method} ${req.path}`);
+      return next();
+    }
+    
+    // Apply CSRF protection for all other routes
+    console.log(`Applying CSRF for ${req.method} ${req.path}`);
+    return csrfProtection(req, res, next);
+  };
+  
+  // Apply the selective CSRF middleware to all API routes
+  app.use('/api', applyCsrf);
+  
+  // Add comprehensive CSRF error handling
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+      console.error('CSRF validation failed:', { 
+        path: req.path, 
+        method: req.method,
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+        cookies: req.cookies,
+        sessionID: req.sessionID
+      });
+      return res.status(403).json({ 
+        message: 'Invalid or expired security token',
+        errorCode: 'CSRF_ERROR',
+        path: req.path
+      });
+    }
+    next(err);
+  });
 
   // Passport local strategy
   passport.use(new LocalStrategy(

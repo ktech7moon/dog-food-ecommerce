@@ -1,29 +1,47 @@
 /**
- * CSRF protection utilities - TEMPORARILY SIMPLIFIED FOR DEBUGGING
+ * CSRF protection utilities
  * This module provides functions to fetch and use CSRF tokens for form submissions
  * Implements industry-standard CSRF protection patterns
  */
 
 import { apiRequest } from "./queryClient";
 
-// Cache for the CSRF token - using dummy token for now
-const DUMMY_TOKEN = 'dummy-csrf-token';
-let csrfToken: string = DUMMY_TOKEN;
-let tokenExpiryTime: number = Date.now() + (30 * 60 * 1000); // 30 minutes
+// Cache for the CSRF token
+let csrfToken: string | null = null;
+let tokenExpiryTime: number | null = null;
 const TOKEN_LIFETIME = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 /**
- * Fetches a fresh CSRF token from the server - TEMPORARILY SIMPLIFIED
+ * Fetches a fresh CSRF token from the server
  * @returns Promise with the CSRF token
  */
 export const fetchCsrfToken = async (): Promise<string> => {
   try {
-    console.log("CSRF protection temporarily disabled, using dummy token");
-    // Just return the dummy token immediately without making a request
-    return DUMMY_TOKEN;
+    console.log("Fetching new CSRF token");
+    const response = await fetch('/api/csrf-token', {
+      method: 'GET',
+      credentials: 'include', // Important for cookies
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch CSRF token: ${response.status}`);
+      throw new Error(`Failed to fetch CSRF token: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log("Received new CSRF token");
+    
+    // Set token and expiry time
+    csrfToken = data.csrfToken;
+    tokenExpiryTime = Date.now() + TOKEN_LIFETIME;
+    
+    return csrfToken as string;
   } catch (error) {
     console.error('Error fetching CSRF token:', error);
-    return DUMMY_TOKEN; // Return dummy token even on error
+    throw error;
   }
 };
 
@@ -33,8 +51,12 @@ export const fetchCsrfToken = async (): Promise<string> => {
  * @returns Promise with the CSRF token
  */
 export const getCsrfToken = async (forceRefresh = false): Promise<string> => {
-  // Temporarily always return the dummy token
-  return DUMMY_TOKEN;
+  // If token doesn't exist, is expired, or force refresh is requested
+  if (forceRefresh || !csrfToken || !tokenExpiryTime || Date.now() > tokenExpiryTime) {
+    return fetchCsrfToken();
+  }
+  
+  return csrfToken;
 };
 
 /**
@@ -48,7 +70,6 @@ export const addCsrfHeader = async (headers: Record<string, string> = {}): Promi
     // Include token in multiple header formats for maximum compatibility
     return {
       ...headers,
-      'CSRF-Token': token,
       'X-CSRF-Token': token,
     };
   } catch (error) {
@@ -89,17 +110,30 @@ export const csrfRequest = async (
   extraHeaders?: Record<string, string>
 ): Promise<Response> => {
   try {
-    // CSRF protection temporarily disabled for debugging
-    console.log(`Making ${method} request to ${url} with CSRF protection temporarily disabled`);
+    // Only add CSRF tokens to non-GET requests that need protection
+    if (method.toUpperCase() !== 'GET' && !isCsrfExempt(url)) {
+      console.log(`Adding CSRF protection to ${method} ${url}`);
+      const csrfHeaders = await addCsrfHeader(extraHeaders || {});
+      return apiRequest(method, url, data, csrfHeaders);
+    }
     
-    // Always add the dummy token regardless of request type
-    const headers = {
-      ...(extraHeaders || {}),
-      'X-CSRF-Token': DUMMY_TOKEN,
-    };
-    
-    return apiRequest(method, url, data, headers);
+    // No CSRF token needed for GET requests or exempt endpoints
+    return apiRequest(method, url, data, extraHeaders);
   } catch (error) {
+    // If we get a 403 error, it might be a CSRF token issue
+    if (error instanceof Error && error.message.includes('403')) {
+      console.warn("CSRF token might be invalid or expired, refreshing token and retrying request");
+      
+      // Get a fresh token
+      await fetchCsrfToken();
+      
+      // Retry the request with the new token
+      if (method.toUpperCase() !== 'GET' && !isCsrfExempt(url)) {
+        const csrfHeaders = await addCsrfHeader(extraHeaders || {});
+        return apiRequest(method, url, data, csrfHeaders);
+      }
+    }
+    
     // Log all errors for debugging
     console.error(`Error in ${method} request to ${url}:`, error);
     throw error;
