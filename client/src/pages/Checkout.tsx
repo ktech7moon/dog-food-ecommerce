@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
+import { csrfRequest } from "@/lib/csrf";
 import {
   Form,
   FormControl,
@@ -125,7 +126,8 @@ const CheckoutForm = ({
         }))
       };
       
-      const response = await apiRequest("POST", "/api/orders", orderData);
+      // Use csrfRequest instead of apiRequest for CSRF protection
+      const response = await csrfRequest("POST", "/api/orders", orderData);
       const order = await response.json();
       
       // Clear the cart
@@ -267,7 +269,8 @@ const Checkout = () => {
       
       // Create a payment intent from the cart
       console.log("Sending payment intent request to API...");
-      const response = await apiRequest("POST", "/api/create-payment-intent-from-cart", {});
+      // Use csrfRequest instead of apiRequest for CSRF protection
+      const response = await csrfRequest("POST", "/api/create-payment-intent-from-cart", {});
       
       // Check if the response was OK
       if (!response.ok) {

@@ -770,7 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/orders', isAuthenticated, async (req: Request, res: Response) => {
+  app.post('/api/orders', isAuthenticated, applyCsrf, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;
       const { 
@@ -863,7 +863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CONTACT ROUTES
-  app.post('/api/contact', async (req: Request, res: Response) => {
+  app.post('/api/contact', applyCsrf, async (req: Request, res: Response) => {
     try {
       const validatedData = insertContactSubmissionSchema.parse(req.body);
       const submission = await storage.createContactSubmission(validatedData);
@@ -1007,7 +1007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a payment intent from the current cart
-  app.post('/api/create-payment-intent-from-cart', isAuthenticated, async (req: Request, res: Response) => {
+  app.post('/api/create-payment-intent-from-cart', isAuthenticated, applyCsrf, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;
       
