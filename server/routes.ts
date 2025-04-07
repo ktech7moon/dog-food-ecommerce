@@ -603,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/cart/items', isAuthenticated, async (req: Request, res: Response) => {
+  app.post('/api/cart/items', isAuthenticated, applyCsrf, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;
       let cart = await storage.getCart(user.id);
@@ -647,7 +647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/cart/items/:id', isAuthenticated, async (req: Request, res: Response) => {
+  app.put('/api/cart/items/:id', isAuthenticated, applyCsrf, async (req: Request, res: Response) => {
     try {
       const { quantity } = req.body;
       const id = parseInt(req.params.id);
@@ -668,7 +668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/cart/items/:id', isAuthenticated, async (req: Request, res: Response) => {
+  app.delete('/api/cart/items/:id', isAuthenticated, applyCsrf, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteCartItem(id);
@@ -683,7 +683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/cart', isAuthenticated, async (req: Request, res: Response) => {
+  app.delete('/api/cart', isAuthenticated, applyCsrf, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;
       const cart = await storage.getCart(user.id);
@@ -973,7 +973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Create a payment intent for one-time purchases
-  app.post('/api/create-payment-intent', isAuthenticated, async (req: Request, res: Response) => {
+  app.post('/api/create-payment-intent', isAuthenticated, applyCsrf, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;
       const { amount } = req.body;

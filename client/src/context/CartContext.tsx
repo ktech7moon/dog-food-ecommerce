@@ -140,14 +140,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch(`/api/cart/items/${itemId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ quantity })
-      });
+      // Use csrfRequest to handle CSRF token automatically
+      const response = await csrfRequest(
+        'PUT',
+        `/api/cart/items/${itemId}`,
+        { quantity }
+      );
       
       if (response.status === 401) {
         // User is not logged in, redirect to auth page
@@ -185,10 +183,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch(`/api/cart/items/${itemId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
+      // Use csrfRequest to handle CSRF token automatically
+      const response = await csrfRequest('DELETE', `/api/cart/items/${itemId}`);
       
       if (response.status === 401) {
         // User is not logged in, show login prompt
@@ -240,10 +236,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch('/api/cart', {
-        method: 'DELETE',
-        credentials: 'include'
-      });
+      // Use csrfRequest to handle CSRF token automatically
+      const response = await csrfRequest('DELETE', '/api/cart');
       
       if (response.status === 401) {
         // User is not logged in, show login prompt
