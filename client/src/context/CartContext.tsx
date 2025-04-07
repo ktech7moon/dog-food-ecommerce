@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { csrfRequest } from "@/lib/csrf";
 
 export type CartCustomization = {
   protein: string;
@@ -84,18 +85,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch('/api/cart/items', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ 
+      // Use csrfRequest to handle CSRF token automatically
+      const response = await csrfRequest(
+        'POST',
+        '/api/cart/items',
+        { 
           productId, 
           quantity,
           customizations
-        })
-      });
+        }
+      );
       
       if (response.status === 401) {
         // User is not logged in, redirect to auth page

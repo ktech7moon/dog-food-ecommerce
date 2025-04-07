@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { csrfRequest } from "@/lib/csrf";
 import {
   Form,
   FormControl,
@@ -51,7 +52,8 @@ const Contact = () => {
     try {
       setIsSubmitting(true);
       
-      await apiRequest("POST", "/api/contact", values);
+      // Use csrfRequest for CSRF protection
+      await csrfRequest("POST", "/api/contact", values);
       
       form.reset();
       
