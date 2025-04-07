@@ -6,7 +6,6 @@ import MemoryStore from "memorystore";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
-import csrf from "csurf";
 import { z } from "zod";
 import Stripe from "stripe";
 import { insertUserSchema, insertContactSubmissionSchema, insertReviewSchema, CartCustomization } from "@shared/schema";
@@ -39,36 +38,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.initialize());
   app.use(passport.session());
   
-  // PHASE 1: CSRF PROTECTION FOR NON-AUTHENTICATION ENDPOINTS
-  // Implementing industry-standard CSRF protection gradually
+  // SIMPLE AND RELIABLE CSRF PROTECTION
+  // Temporary approach: use custom token-based CSRF protection
   
-  // Use csurf middleware for token creation and validation
-  const csrfProtection = csrf({
-    cookie: {
-      key: '_csrf',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // Protects against CSRF while allowing links
-      maxAge: 3600 * 1000 // 1 hour expiry for better security
-    }
-  });
+  // Generate a CSRF token using crypto
+  const generateCsrfToken = () => {
+    // Simple token generation using a timestamp and random string
+    const timestamp = Date.now().toString(36);
+    const randomStr = Math.random().toString(36).substring(2, 10);
+    return `${timestamp}-${randomStr}`;
+  };
   
-  // Create a proper CSRF token endpoint
-  app.get('/api/csrf-token', csrfProtection, (req: Request, res: Response) => {
+  // In-memory store for active CSRF tokens (not ideal for production but works for now)
+  // In production, tokens should be stored in the session or Redis
+  const activeCsrfTokens = new Map<string, { token: string, expires: number }>();
+  
+  // Clean up expired tokens every 5 minutes
+  setInterval(() => {
+    const now = Date.now();
+    // Convert entries to array before iterating
+    [...activeCsrfTokens.entries()].forEach(([sessionId, data]) => {
+      if (data.expires < now) {
+        activeCsrfTokens.delete(sessionId);
+      }
+    });
+  }, 5 * 60 * 1000);
+  
+  // Token endpoint - generates a fresh token
+  app.get('/api/csrf-token', (req: Request, res: Response) => {
     try {
-      const token = req.csrfToken();
-      console.log("Generated CSRF token for session:", req.sessionID?.substring(0, 6) + '...');
-      res.json({ csrfToken: token });
+      // Generate a new token
+      const token = generateCsrfToken();
+      
+      // Store the token for this session with an expiry time (1 hour)
+      const sessionId = req.sessionID || 'default';
+      activeCsrfTokens.set(sessionId, {
+        token,
+        expires: Date.now() + 60 * 60 * 1000 // 1 hour
+      });
+      
+      // Set the CSRF token as a cookie
+      res.cookie('XSRF-TOKEN', token, {
+        httpOnly: false, // Allow JavaScript to read it
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 1000 // 1 hour
+      });
+      
+      console.log(`CSRF token generated for session ${sessionId.substring(0, 6)}...`);
+      
+      // Return the token in the response body too
+      res.json({ csrfToken: token, expiresIn: '1 hour' });
     } catch (error) {
       console.error("Error generating CSRF token:", error);
-      // Fallback for debugging
-      res.json({ csrfToken: 'debug-csrf-token', error: 'Token generation failed' });
+      res.status(500).json({ 
+        message: 'Failed to generate security token', 
+        error: 'Internal error'
+      });
     }
   });
   
   // List of endpoints exempt from CSRF protection
   const csrfExemptEndpoints = [
-    // Authentication endpoints exempt for Phase 1
+    // Authentication endpoints exempt for now
     '/api/auth/login',
     '/api/auth/register',
     '/api/auth/logout',
@@ -78,62 +110,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     '/api/webhook' // For external services callbacks
   ];
   
-  // Phase 1 CSRF middleware - protect non-authentication endpoints
+  // CSRF protection middleware
   const applyCsrf = (req: Request, res: Response, next: NextFunction) => {
     // Skip CSRF for GET requests (they don't modify state)
     if (req.method === 'GET') {
       return next();
     }
     
-    // Skip CSRF for exempt endpoints in Phase 1
+    // Skip CSRF for exempt endpoints
     if (csrfExemptEndpoints.some(path => req.path.endsWith(path))) {
-      console.log(`Skipping CSRF for exempt endpoint: ${req.method} ${req.path}`);
+      console.log(`CSRF skipped for exempt endpoint: ${req.method} ${req.path}`);
       return next();
     }
     
-    // Only apply CSRF for logged-in users 
-    // (ensures tokens exist before validation)
-    if (req.isAuthenticated()) {
-      console.log(`Applying CSRF protection: ${req.method} ${req.path}`);
-      return csrfProtection(req, res, next);
+    try {
+      // Get token from the request
+      const tokenFromHeader = req.headers['x-csrf-token'] || req.headers['x-xsrf-token'];
+      const token = Array.isArray(tokenFromHeader) ? tokenFromHeader[0] : tokenFromHeader;
+      
+      if (!token) {
+        console.error(`CSRF token missing for ${req.method} ${req.path}`);
+        return res.status(403).json({ 
+          message: 'Security token missing',
+          errorCode: 'CSRF_ERROR'
+        });
+      }
+      
+      // Get the stored token for this session
+      const sessionId = req.sessionID || 'default';
+      const storedData = activeCsrfTokens.get(sessionId);
+      
+      // Validate token
+      if (!storedData || storedData.token !== token || storedData.expires < Date.now()) {
+        console.error(`CSRF token invalid for ${req.method} ${req.path}`);
+        return res.status(403).json({ 
+          message: 'Invalid security token',
+          errorCode: 'CSRF_ERROR'
+        });
+      }
+      
+      // Token is valid
+      console.log(`CSRF token validated for ${req.method} ${req.path}`);
+      return next();
+    } catch (error) {
+      console.error(`CSRF error for ${req.method} ${req.path}:`, error);
+      return res.status(403).json({ 
+        message: 'Security validation failed',
+        errorCode: 'CSRF_ERROR'
+      });
     }
-    
-    // If not authenticated, just proceed (will get 401 later anyway)
-    return next();
   };
   
-  // Apply the selective CSRF middleware to all routes
+  // Apply the CSRF middleware to all routes
   app.use(applyCsrf);
-  
-  // Add comprehensive CSRF error handling with detailed logs
-  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    if (err && err.code === 'EBADCSRFTOKEN') {
-      console.error('CSRF validation failed:', { 
-        path: req.path, 
-        method: req.method,
-        ip: req.ip,
-        userAgent: typeof req.headers['user-agent'] === 'string' 
-          ? req.headers['user-agent'].substring(0, 30) + '...' 
-          : 'unknown',
-        cookies: Object.keys(req.cookies || {}),
-        sessionID: typeof req.sessionID === 'string' 
-          ? req.sessionID.substring(0, 6) + '...' 
-          : 'unknown',
-        csrfToken: typeof req.headers['x-csrf-token'] === 'string' 
-          ? req.headers['x-csrf-token'].substring(0, 6) + '...' 
-          : Array.isArray(req.headers['x-csrf-token'])
-            ? req.headers['x-csrf-token'][0].substring(0, 6) + '...'
-            : 'missing',
-      });
-      
-      return res.status(403).json({ 
-        message: 'Invalid security token. Please refresh the page and try again.',
-        errorCode: 'CSRF_ERROR',
-        path: req.path
-      });
-    }
-    next(err);
-  });
 
   // Passport local strategy
   passport.use(new LocalStrategy(

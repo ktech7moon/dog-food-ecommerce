@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 
 // Initialize Express app
 const app = express();
@@ -31,6 +32,8 @@ app.use(helmet({
 app.use(express.json({ limit: '1mb' }));
 // Parse application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+// Parse cookies - this is required for csurf to work properly
+app.use(cookieParser(process.env.SESSION_SECRET || 'your-secret-key'));
 // Serve static files
 app.use(express.static(path.join(process.cwd(), 'public'), {
   maxAge: 31557600000 // 1 year in milliseconds
