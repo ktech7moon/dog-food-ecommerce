@@ -56,8 +56,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Clean up expired tokens every 5 minutes
   setInterval(() => {
     const now = Date.now();
-    // Convert entries to array before iterating
-    [...activeCsrfTokens.entries()].forEach(([sessionId, data]) => {
+    // Convert entries to array before iterating to avoid TypeScript error
+    Array.from(activeCsrfTokens.entries()).forEach(([sessionId, data]) => {
       if (data.expires < now) {
         activeCsrfTokens.delete(sessionId);
       }
@@ -881,7 +881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // NEWSLETTER ROUTES
-  app.post('/api/newsletter/subscribe', async (req: Request, res: Response) => {
+  app.post('/api/newsletter/subscribe', applyCsrf, async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
       
@@ -905,7 +905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SHIPPING CALCULATOR
-  app.post('/api/shipping/calculate', async (req: Request, res: Response) => {
+  app.post('/api/shipping/calculate', applyCsrf, async (req: Request, res: Response) => {
     try {
       const { subtotal, zipCode, country } = req.body;
       

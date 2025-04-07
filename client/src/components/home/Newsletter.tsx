@@ -3,6 +3,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
+import { csrfRequest } from "@/lib/csrf";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -35,7 +36,7 @@ const Newsletter = () => {
     try {
       setIsSubmitting(true);
       
-      await apiRequest("POST", "/api/newsletter/subscribe", values);
+      await csrfRequest("POST", "/api/newsletter/subscribe", values);
       
       form.reset();
       
