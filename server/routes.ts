@@ -39,36 +39,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.initialize());
   app.use(passport.session());
   
-  // TEMPORARY CSRF SUSPENSION FOR DEBUGGING
-  // We need to troubleshoot the implementation issues
+  // PHASE 1: CSRF PROTECTION FOR NON-AUTHENTICATION ENDPOINTS
+  // Implementing industry-standard CSRF protection gradually
   
-  // Simple, dependency-free CSRF protection
-  app.get('/api/csrf-token', (req: Request, res: Response) => {
-    // For now, return a fixed token that will be validated on the client only
-    console.log("Serving CSRF debugging token");
-    res.json({ csrfToken: 'debug-csrf-token' });
+  // Use csurf middleware for token creation and validation
+  const csrfProtection = csrf({
+    cookie: {
+      key: '_csrf',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', // Protects against CSRF while allowing links
+      maxAge: 3600 * 1000 // 1 hour expiry for better security
+    }
   });
   
-  // No-op middleware to allow the application to function
-  const applyCsrf = (req: Request, res: Response, next: NextFunction) => {
-    // During debugging, just log what would be protected
-    if (req.method !== 'GET') {
-      console.log(`[DEBUG] Would apply CSRF for ${req.method} ${req.path}`);
+  // Create a proper CSRF token endpoint
+  app.get('/api/csrf-token', csrfProtection, (req: Request, res: Response) => {
+    try {
+      const token = req.csrfToken();
+      console.log("Generated CSRF token for session:", req.sessionID?.substring(0, 6) + '...');
+      res.json({ csrfToken: token });
+    } catch (error) {
+      console.error("Error generating CSRF token:", error);
+      // Fallback for debugging
+      res.json({ csrfToken: 'debug-csrf-token', error: 'Token generation failed' });
     }
+  });
+  
+  // List of endpoints exempt from CSRF protection
+  const csrfExemptEndpoints = [
+    // Authentication endpoints exempt for Phase 1
+    '/api/auth/login',
+    '/api/auth/register',
+    '/api/auth/logout',
+    // Token endpoint
+    '/api/csrf-token',
+    // Other special cases
+    '/api/webhook' // For external services callbacks
+  ];
+  
+  // Phase 1 CSRF middleware - protect non-authentication endpoints
+  const applyCsrf = (req: Request, res: Response, next: NextFunction) => {
+    // Skip CSRF for GET requests (they don't modify state)
+    if (req.method === 'GET') {
+      return next();
+    }
+    
+    // Skip CSRF for exempt endpoints in Phase 1
+    if (csrfExemptEndpoints.some(path => req.path.endsWith(path))) {
+      console.log(`Skipping CSRF for exempt endpoint: ${req.method} ${req.path}`);
+      return next();
+    }
+    
+    // Only apply CSRF for logged-in users 
+    // (ensures tokens exist before validation)
+    if (req.isAuthenticated()) {
+      console.log(`Applying CSRF protection: ${req.method} ${req.path}`);
+      return csrfProtection(req, res, next);
+    }
+    
+    // If not authenticated, just proceed (will get 401 later anyway)
     return next();
   };
   
-  // Add detailed error handling to track issues
+  // Apply the selective CSRF middleware to all routes
+  app.use(applyCsrf);
+  
+  // Add comprehensive CSRF error handling with detailed logs
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     if (err && err.code === 'EBADCSRFTOKEN') {
       console.error('CSRF validation failed:', { 
         path: req.path, 
         method: req.method,
-        error: err.message
+        ip: req.ip,
+        userAgent: typeof req.headers['user-agent'] === 'string' 
+          ? req.headers['user-agent'].substring(0, 30) + '...' 
+          : 'unknown',
+        cookies: Object.keys(req.cookies || {}),
+        sessionID: typeof req.sessionID === 'string' 
+          ? req.sessionID.substring(0, 6) + '...' 
+          : 'unknown',
+        csrfToken: typeof req.headers['x-csrf-token'] === 'string' 
+          ? req.headers['x-csrf-token'].substring(0, 6) + '...' 
+          : Array.isArray(req.headers['x-csrf-token'])
+            ? req.headers['x-csrf-token'][0].substring(0, 6) + '...'
+            : 'missing',
       });
+      
       return res.status(403).json({ 
-        message: 'Invalid security token - debugging mode',
-        errorCode: 'CSRF_ERROR_DEBUG'
+        message: 'Invalid security token. Please refresh the page and try again.',
+        errorCode: 'CSRF_ERROR',
+        path: req.path
       });
     }
     next(err);
