@@ -53,29 +53,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // In production, tokens should be stored in the session or Redis
   const activeCsrfTokens = new Map<string, { token: string, expires: number }>();
   
+  // Also keep a global token for non-authenticated users to make forms more reliable
+  let globalCsrfToken = {
+    token: generateCsrfToken(),
+    expires: Date.now() + 60 * 60 * 1000 // 1 hour
+  };
+  
   // Clean up expired tokens every 5 minutes
   setInterval(() => {
     const now = Date.now();
+    
     // Convert entries to array before iterating to avoid TypeScript error
     Array.from(activeCsrfTokens.entries()).forEach(([sessionId, data]) => {
       if (data.expires < now) {
         activeCsrfTokens.delete(sessionId);
       }
     });
+    
+    // Also refresh the global token if it's expired
+    if (globalCsrfToken.expires < now) {
+      globalCsrfToken = {
+        token: generateCsrfToken(),
+        expires: Date.now() + 60 * 60 * 1000 // 1 hour
+      };
+      console.log('Global CSRF token refreshed');
+    }
   }, 5 * 60 * 1000);
   
   // Token endpoint - generates a fresh token
   app.get('/api/csrf-token', (req: Request, res: Response) => {
     try {
-      // Generate a new token
-      const token = generateCsrfToken();
+      let token;
       
-      // Store the token for this session with an expiry time (1 hour)
-      const sessionId = req.sessionID || 'default';
-      activeCsrfTokens.set(sessionId, {
-        token,
-        expires: Date.now() + 60 * 60 * 1000 // 1 hour
-      });
+      // For authenticated users, generate a session-specific token
+      if (req.isAuthenticated()) {
+        // Generate a new token
+        token = generateCsrfToken();
+        
+        // Store the token for this session with an expiry time (1 hour)
+        const sessionId = req.sessionID || 'default';
+        activeCsrfTokens.set(sessionId, {
+          token,
+          expires: Date.now() + 60 * 60 * 1000 // 1 hour
+        });
+        
+        console.log(`CSRF token generated for authenticated session ${sessionId.substring(0, 6)}...`);
+      } else {
+        // For non-authenticated users, use the global token
+        // Check if we need to refresh the global token
+        if (globalCsrfToken.expires < Date.now() + 30 * 60 * 1000) { // Refresh if less than 30 mins left
+          globalCsrfToken = {
+            token: generateCsrfToken(),
+            expires: Date.now() + 60 * 60 * 1000 // 1 hour
+          };
+          console.log('Global CSRF token refreshed during token request');
+        }
+        
+        token = globalCsrfToken.token;
+        console.log(`Using global CSRF token for non-authenticated request`);
+        
+        // Still store it in the session for compatibility
+        if (req.sessionID) {
+          activeCsrfTokens.set(req.sessionID, {
+            token,
+            expires: globalCsrfToken.expires
+          });
+        }
+      }
       
       // Set the CSRF token as a cookie
       res.cookie('XSRF-TOKEN', token, {
@@ -84,8 +128,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sameSite: 'lax',
         maxAge: 60 * 60 * 1000 // 1 hour
       });
-      
-      console.log(`CSRF token generated for session ${sessionId.substring(0, 6)}...`);
       
       // Return the token in the response body too
       res.json({ csrfToken: token, expiresIn: '1 hour' });
@@ -151,8 +193,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expired: storedData ? (storedData.expires < Date.now()) : true
       });
       
-      // Validate token
-      if (!storedData || storedData.token !== token || storedData.expires < Date.now()) {
+      // Validate token - check session token first, then global token for non-authenticated users
+      const sessionValid = storedData && storedData.token === token && storedData.expires >= Date.now();
+      const globalValid = !req.isAuthenticated() && token === globalCsrfToken.token && globalCsrfToken.expires >= Date.now();
+      
+      // Log detailed information for debugging
+      console.log(`CSRF token validation details for ${req.method} ${req.path}:`, {
+        authenticated: req.isAuthenticated(),
+        sessionValid,
+        globalValid,
+        globalTokenMatch: !req.isAuthenticated() ? (token === globalCsrfToken.token) : 'N/A'
+      });
+      
+      if (!sessionValid && !globalValid) {
         console.error(`CSRF token invalid for ${req.method} ${req.path}`);
         return res.status(403).json({ 
           message: 'Invalid security token',
