@@ -122,7 +122,17 @@ export const csrfRequest = async (
     // Only add CSRF tokens to non-GET, non-exempt requests
     if (method.toUpperCase() !== 'GET' && !isCsrfExempt(url)) {
       console.log(`Adding CSRF protection to ${method} ${url}`);
+      
+      // For POST requests, always fetch a fresh token to ensure it's valid
+      if (method.toUpperCase() === 'POST') {
+        await fetchCsrfToken();
+      }
+      
       const csrfHeaders = await addCsrfHeader(extraHeaders || {});
+      
+      // Log the token we're using for debugging
+      console.log(`Using CSRF token: ${csrfHeaders['X-CSRF-Token'].substring(0, 10)}...`);
+      
       return apiRequest(method, url, data, csrfHeaders);
     }
     

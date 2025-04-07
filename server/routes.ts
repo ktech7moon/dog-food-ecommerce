@@ -140,6 +140,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessionId = req.sessionID || 'default';
       const storedData = activeCsrfTokens.get(sessionId);
       
+      // Debug logs
+      console.log(`CSRF validation for ${req.method} ${req.path}:`, {
+        sessionId: sessionId.substring(0, 6) + '...',
+        hasStoredToken: !!storedData,
+        receivedToken: token.substring(0, 10) + '...',
+        storedToken: storedData ? (storedData.token.substring(0, 10) + '...') : 'none',
+        cookieHeader: req.headers.cookie ? 'present' : 'missing',
+        tokensMatch: storedData ? (storedData.token === token) : false,
+        expired: storedData ? (storedData.expires < Date.now()) : true
+      });
+      
       // Validate token
       if (!storedData || storedData.token !== token || storedData.expires < Date.now()) {
         console.error(`CSRF token invalid for ${req.method} ${req.path}`);

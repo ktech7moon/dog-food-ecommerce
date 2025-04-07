@@ -36,6 +36,23 @@ const Newsletter = () => {
     try {
       setIsSubmitting(true);
       
+      // Get the CSRF token directly from cookie to check if it's there
+      const cookies = document.cookie.split(';');
+      let csrfCookie = null;
+      for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'XSRF-TOKEN') {
+          csrfCookie = decodeURIComponent(value);
+          break;
+        }
+      }
+      
+      console.log('Newsletter form submission', {
+        email: values.email,
+        hasCsrfCookie: !!csrfCookie,
+        csrfCookieStart: csrfCookie ? csrfCookie.substring(0, 10) : 'none'
+      });
+      
       await csrfRequest("POST", "/api/newsletter/subscribe", values);
       
       form.reset();
@@ -47,6 +64,37 @@ const Newsletter = () => {
       });
     } catch (error) {
       console.error("Error subscribing to newsletter:", error);
+      
+      // If it's a CSRF error, let's try to refresh the token and try again
+      if (error instanceof Error && error.message.includes('403')) {
+        try {
+          console.log("CSRF token refresh attempt initiated...");
+          
+          // Import the fetchCsrfToken function dynamically to avoid circular dependencies
+          const { fetchCsrfToken } = await import('@/lib/csrf');
+          
+          // Refresh the token
+          await fetchCsrfToken();
+          console.log("CSRF token refreshed, retrying submission...");
+          
+          // Try the request again
+          await csrfRequest("POST", "/api/newsletter/subscribe", values);
+          
+          form.reset();
+          
+          toast({
+            title: "Subscribed!",
+            description: "Thank you for joining our pack. You'll now receive updates and special offers.",
+            duration: 5000,
+          });
+          
+          // If we got here, we succeeded on retry
+          return;
+        } catch (retryError) {
+          console.error("Retry also failed:", retryError);
+          // Fall through to the error toast below
+        }
+      }
       
       toast({
         title: "Subscription Error",
